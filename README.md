@@ -29,7 +29,7 @@ png2pos conforms to ESC/POS language used by these printers:
 * Epson TM-T90
 * Epson TM-L90
 * Epson TM-P60
-* Epson TM-J2000/J2100 (deprecated)
+* Epson TM-J2000/J2100 (deprecated, set GS8L_MAX_Y to value <= 128u)
 * PRT PT562A-B (tested)
 * PRT PT802A-B (tested)
 
