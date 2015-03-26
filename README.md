@@ -103,7 +103,7 @@ Windows binary is build in MinGW by (MinGW must be included in PATH):
     C:\devel\png2pos> mingw32-make -f Makefile.win strip
 
 **Please, do not forget to specify your printer's head width in pixels via PRINTER_MAX_WIDTH constant
-if it differs from default value of 512 px.** (You probably need to specify 384 for 56 mm printers.)
+if it differs from default value 512 px.** (You probably need to specify 384 for 56 mm printers.)
 PRINTER_MAX_WIDTH must be divisible by 8.
 
 ### Available make targets
