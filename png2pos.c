@@ -186,7 +186,7 @@ char* basename(const char *s) {
     return r;
 }
 
-void print(FILE *stream, const unsigned char *buffer, const int length) {
+void print(FILE *stream, const unsigned char *buffer, const unsigned int length) {
     for (unsigned int i = 0; i != length; ++i) {
         fputc(buffer[i], stream);
     }
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
                     "  -a L|C|R     horizontal image alignment (Left, Center, Right)\n"
                     "  -r           rotate image upside down before it is printed\n"
                     "  -t THRESHOLD set the treshold value for conversion to B/W\n"
-                    "  -p           switch to photo mode (pre-process input files)\n"
+                    "  -p           switch to photo mode (post-process input files)\n"
                     "  -o FILE      output file\n"
                     "\n"
                     "With no FILE, or when FILE is -, write to standard output\n"

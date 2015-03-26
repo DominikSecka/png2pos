@@ -130,22 +130,22 @@ png2pos has no lib dependencies and is easy to build and run on Linux, Mac and W
 ## Examples
 
 ### Lena
-Original
+Original (3 bytes per pixel)
 
 ![original](docs/lena_png2pos_0_original.png)
 
-Greyscale version
+Greyscale version (1 byte per pixel)
 
 ![grey](docs/lena_png2pos_1_grey.png)
 
-Pre-processed version (Histogram Equalization Algorithm)
+Post-processed version (Histogram Equalization Algorithm, 1 byte per pixel)
 
 ![post-processed](docs/lena_png2pos_2_pp.png)
 
-Produced B/W dithered version (Atkinson Dithering Algorithm)
+Produced B/W dithered version (Atkinson Dithering Algorithm, 1 bit per pixel)
 
 ![B/W](docs/lena_png2pos_3_bw.png)
 
-Histograms (raw and pre-processed image)
+Histograms (raw and post-processed image)
 
 ![histograms](docs/lena_png2pos_histogram.png)
