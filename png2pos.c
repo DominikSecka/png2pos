@@ -165,6 +165,7 @@ const unsigned char LIGHTNESS[256] = {
 
 FILE *fout = NULL;
 
+// keeps value in the <min; max> interval
 inline int rebound(const int value, const int min, const int max) {
     int a = value;
     if (a < min) {
@@ -209,6 +210,8 @@ int main(int argc, char *argv[]) {
 
     int ret = EXIT_FAILURE;
 
+    // http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html
+    // Utility Conventions: 12.1 Utility Argument Syntax
     opterr = 0;
     int optc = -1;
     while ((optc = getopt(argc, argv, ":Vhca:rt:po:")) != -1) {
@@ -342,7 +345,6 @@ int main(int argc, char *argv[]) {
             goto fail;
         }
 
-        // convert RGBA to greyscale
         for (unsigned int i = 0; i != img_grey_size; ++i) {
             // A
             const unsigned int a = img_rgba[(i << 2) | 3];
@@ -354,7 +356,7 @@ int main(int argc, char *argv[]) {
             const unsigned int r_ = GAMMA_22[r];
             const unsigned int g_ = GAMMA_22[g];
             const unsigned int b_ = GAMMA_22[b];
-            // R'G'B' → luma Y' (!= luminance), CIE, BT.709
+            // R'G'B' → luma Y' (!= luminance), ITU-R: BT.709
             const unsigned int y_ = (55 * r_ + 182 * g_ + 18 * b_) / 255;
             // Y' → lightness L*
             img_grey[i] = LIGHTNESS[y_];
@@ -430,12 +432,24 @@ int main(int argc, char *argv[]) {
             }
             fclose(fhist), fhist = NULL;
 #endif
+            // http://www.tannerhelland.com/4660/dithering-eleven-algorithms-source-code/
+            // One of the best dithering algorithms from mid-1980's was developed by Bill Atkinson,
+            // a Apple employee who worked on everything from MacPaint (which he wrote from scratch
+            // for the original Macintosh) to HyperCard and QuickDraw.
+            // Atkinson’s formula is a bit different from others, because it only propagates
+            // a fraction of the error instead of the full amount. This technique is sometimes offered
+            // by modern graphics applications as a “reduced color bleed” option. By only propagating part
+            // of the error, speckling is reduced, but contiguous dark or bright sections of an image may
+            // become washed out.
 
             // Atkinson Dithering Algorithm
+            #define DITHERING_MATRIX_SIZE 6
             const struct {
                 int dx;
                 int dy;
-            } matrix[6] = {
+                // for simplicity of computation, all standard dithering formulas
+                // push the error forward, never backward 
+            } dithering_matrix[DITHERING_MATRIX_SIZE] = {
                 { .dx =  1, .dy = 0 },
                 { .dx =  2, .dy = 0 },
                 { .dx = -1, .dy = 1 },
@@ -446,14 +460,15 @@ int main(int argc, char *argv[]) {
             for (unsigned int i = 0; i != img_grey_size; ++i) {
                 const unsigned int o = img_grey[i];
                 const unsigned int n = o <= config.threshold ? 0x00 : 0xff;
-                const int d = (signed int)(o - n) / 8;
+                // the residual quantization error 
+                const int d = (int)(o - n) / 8;
                 img_grey[i] = n;
                 const unsigned int x = i % img_w;
                 const unsigned int y = i / img_w;
 
-                for (unsigned int j = 0; j != 6; ++j) {
-                    const int x0 = x + matrix[j].dx;
-                    const int y0 = y + matrix[j].dy;
+                for (unsigned int j = 0; j != DITHERING_MATRIX_SIZE; ++j) {
+                    const int x0 = x + dithering_matrix[j].dx;
+                    const int y0 = y + dithering_matrix[j].dy;
                     if (x0 >= img_w || x0 < 0 || y0 >= img_h) {
                         continue;
                     }
