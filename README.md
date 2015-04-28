@@ -21,17 +21,7 @@ png2pos is:
 
 ## Compatibility
 
-png2pos conforms to ESC/POS language used by these printers:
-
-* Epson TM-T70 (tested)
-* Epson TM-T20 (tested)
-* Epson TM-T88III/IV
-* Epson TM-T90
-* Epson TM-L90
-* Epson TM-P60
-* Epson TM-J2000/J2100 (deprecated, set GS8L_MAX_Y to value <= 128u)
-* PRT PT562A-B (tested)
-* PRT PT802A-B (tested)
+Check [Supported Printers](./compatibility.md) page.
 
 ## How does it work?
 
@@ -41,7 +31,7 @@ ESC/POS is a printer language. The “POS” stands for “Point of Sale”, the
 
 png2pos requires 5 × WIDTH (rounded up to multiple of 8) × HEIGHT bytes of RAM. (e.g. to process full-width image of receipt 768 pixels tall you need about 2 MiB of RAM.)
 
-png2pos converts RGBA images into greyscale version via algorithm compliant with CIE, BT.709. (RGBA → RGB → R'G'B' (gamma 2.2) → luma Y' → lightness L*). For performance reasons png2pos uses pre-calculated lookup tables and integer based math.
+png2pos converts RGBA images into greyscale version via algorithm compliant with ITU-R, BT.709. (RGBA → RGB → R'G'B' (gamma 2.2) → luma Y' → lightness L*). For performance reasons png2pos uses pre-calculated lookup tables and integer based math.
 
 ![gamma](docs/gamma.png)
 
@@ -101,10 +91,6 @@ On Linux you can also build static binary (e.g. also based on [musl](http://www.
 Windows binary is build in MinGW by (MinGW must be included in PATH):
 
     C:\devel\png2pos> mingw32-make -f Makefile.win strip
-
-**Please, do not forget to specify your printer's head width in pixels via PRINTER_MAX_WIDTH constant
-if it differs from default value 512 px.** (You probably need to specify 384 for 56 mm printers.)
-PRINTER_MAX_WIDTH must be divisible by 8.
 
 ### Available make targets
 

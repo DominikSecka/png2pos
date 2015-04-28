@@ -5,6 +5,8 @@ png2pos \- a utility to convert PNG images to ESC/POS format
 \fBpng2pos\fR
 [\fB\-V\fR]
 [\fB\-h\fR]
+[\fB\-W\fR \fIWIDTH\fR]
+[\fB\-Y\fR \fIHEIGHT\fR]
 [\fB\-c\fR]
 [\fB\-a\fR \fIL|C|R\fR]
 [\fB\-r\fR]
@@ -29,28 +31,35 @@ display the version number and exit
 .BR \-h
 display this short help and exit
 .TP
+.BR "\-W \fIWIDTH\fR"
+set printer head width in pixels (printer related), falling back to the default value 512 (= 72 mm printers) if not set;
+You probably need to specify 384 for 56 mm printers, 576 for some high-density 72 mm printers.
+Value must be divisible by 8!
+.TP
+.BR "\-Y \fIHEIGHT\fR"
+set chunk height used for GS8L command (printer related), falling back to the default value 768 if not set
+.TP
 .BR \-c
 cut the paper at the end of job
 .TP
 .BR "\-a \fIL|C|R\fR"
-horizontal image alignment (Left, Center, Right)
+set horizontal image alignment (Left, Center, Right)
 .TP
 .BR \-r
 rotate image upside down before it is printed
 .TP
 .BR "\-t \fITHRESHOLD\fR"
-set the treshold value for conversion to B/W, falling back to the default value 0x80 if not set.
+set the treshold value for conversion to B/W, falling back to the default value 0x80 if not set;
 \fITHRESHOLD\fR must be in the interval <0; 255>, the lower value set, the more bright output created.
-Value may include a "0x" prefix, and the number will be read in base 16, a "0" prefix for base 8 (octal);
-otherwise, a 10 (decimal) base is taken.
 .TP
 .BR \-p
 switch to photo mode (post-process input files)
 .TP
 .BR "\-o \fIFILE\fR"
-output file
-.nf
-With no \fIFILE\fR, or when \fIFILE\fR is -, write to standard output
+output file or device to write to; with no \fIFILE\fR, or when \fIFILE\fR is -, write to standard output
+.PP
+All numeric values for parameters may include a "0x" prefix, and the number will be read in base 16,
+a "0" prefix for base 8 (octal); otherwise, a 10 (decimal) base is taken.
 .SH "EXIT STATUS"
 png2pos uses a common convention of zero (0) for success and non-zero (> 0) for error.
 .SH EXAMPLES

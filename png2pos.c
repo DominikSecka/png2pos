@@ -1,22 +1,6 @@
 /*!
-(c) 2012 - 2015 Petr Kutalek: png2pos
-
-Licensed under the MIT License:
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software
-and associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-- The above copyright notice and this permission notice shall be included in all copies
-or substantial portions of the Software.
-
-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
-AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+Petr Kutalek: png2pos
+See LICENSE for more details on licensing options.
 */
 
 #include <stdio.h>
@@ -26,8 +10,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.4";
+const char *PNG2POS_VERSION = "1.6.6";
 const char *PNG2POS_BUILTON = __DATE__;
+
+// Windows (MINGW) support
+#ifdef __MINGW32__
+// switch stdin and all normal files into binary mode -- needed for Windows
+#include <fcntl.h>
+int _CRT_fmode = _O_BINARY;
+#define _WIN32_WINNT 0x0500u
+#define WIN32_LEAN_AND_MEAN
+#define _WIN32_IE 0x0400u
+#define ICC_STANDARD_CLASSES 0x00004000u
+#include <windows.h>
+#include <shellapi.h>
+#include <commctrl.h>
+#include <wchar.h>
+#endif
 
 // modified lodepng allocators
 void* lodepng_malloc(size_t size) {
@@ -44,13 +43,13 @@ void lodepng_free(void *ptr) {
 
 // ESC sequences
 #define ESC_INIT_LENGTH 2
-const unsigned char ESC_INIT[ESC_INIT_LENGTH] = {
+unsigned char ESC_INIT[ESC_INIT_LENGTH] = {
     // ESC @, Initialize printer, p. 412
     0x1b, 0x40
 };
 
 #define ESC_CUT_LENGTH 4
-const unsigned char ESC_CUT[ESC_CUT_LENGTH] = {
+unsigned char ESC_CUT[ESC_CUT_LENGTH] = {
     // GS V, Sub-Function B, p. 373
     0x1d, 0x56, 0x41,
     // Feeds paper to (cutting position + n × vertical motion unit)
@@ -84,9 +83,9 @@ unsigned char ESC_STORE[ESC_STORE_LENGTH] = {
     // yl, yh, number of dots in the vertical direction
     0x00, 0x00
 };
-
+ 
 #define ESC_FLUSH_LENGTH 7
-const unsigned char ESC_FLUSH[ESC_FLUSH_LENGTH] = {
+unsigned char ESC_FLUSH[ESC_FLUSH_LENGTH] = {
     // GS ( L, Print the graphics data in the print buffer, p. 241
     // Moves print position to the left side of the print area after 
     // printing of graphics data is completed
@@ -95,32 +94,29 @@ const unsigned char ESC_FLUSH[ESC_FLUSH_LENGTH] = {
     0x32 
 };
 
-// number of dots/lines in vertical direction in one F112 command
-// set to <= 128u for Epson TM-J2000/J2100
-#ifndef GS8L_MAX_Y
-#define GS8L_MAX_Y 256u
-#endif
-
-// max image width printer is able to process
-#ifndef PRINTER_MAX_WIDTH
-#define PRINTER_MAX_WIDTH 512u
-#endif
-
 // app configuration
 struct {
     unsigned int cut;
     unsigned int photo;
     char align;
     unsigned int rotate;
-    const char *output;
+#ifdef __MINGW32__
+    wchar_t *output; // output file name (used on Windows, UNICODE)
+#else
+    char *output; // output file name
+#endif
     unsigned int threshold;
+    unsigned int gs8l_max_y; // number of dots/lines in vertical direction in one F112 command
+    unsigned int printer_max_width; // max image width printer is able to process
 } config = {
     .cut = 0,
     .photo = 0,
     .align = '?',
     .rotate = 0,
     .output = NULL,
-    .threshold = 0x80
+    .threshold = 0x80,
+    .gs8l_max_y = 768u,
+    .printer_max_width = 512u
 };
 
 // Gamma 2.2 lookup table
@@ -194,14 +190,6 @@ void print(FILE *stream, const unsigned char *buffer, const unsigned int length)
 }
 
 int main(int argc, char *argv[]) {
-    {
-        // PRINTER_MAX_WIDTH must be divisible by 8!!
-        if (PRINTER_MAX_WIDTH % 8 != 0) {
-            fprintf(stderr, "FATAL ERROR: PRINTER_MAX_WIDTH MUST BE DIVISIBLE BY 8, PLEASE RECOMPILE\n");
-            return EXIT_FAILURE;
-        }
-    }
-
     unsigned char *img_rgba = NULL;
     unsigned char *img_grey = NULL;
     unsigned char *img_bw = NULL;
@@ -210,14 +198,27 @@ int main(int argc, char *argv[]) {
 
     int ret = EXIT_FAILURE;
 
+#ifdef __MINGW32__
+    int argwc = 0;
+    wchar_t **argw = CommandLineToArgvW(GetCommandLineW(), &argwc);
+    if (argw == NULL || argwc != argc) {
+        fprintf(stderr, "Could not process Windows UNICODE command line parameters\n");
+        goto fail;
+    }
+#endif
+
     // http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html
     // Utility Conventions: 12.1 Utility Argument Syntax
     opterr = 0;
     int optc = -1;
-    while ((optc = getopt(argc, argv, ":Vhca:rt:po:")) != -1) {
+    while ((optc = getopt(argc, argv, ":VhW:Y:ca:rt:po:")) != -1) {
         switch (optc) {
             case 'o':
+#ifdef __MINGW32__
+                config.output = argw[optind];
+#else
                 config.output = optarg;
+#endif
                 break;
 
             case 'c':
@@ -248,6 +249,22 @@ int main(int argc, char *argv[]) {
                 config.photo = 1;
                 break;
 
+            case 'W':
+                config.printer_max_width = toupper(optarg[0]);
+                // config.printer_max_width must be divisible by 8!!
+                if (config.printer_max_width % 8 != 0) {
+                    config.printer_max_width = 512u;
+                    fprintf(stderr, "Printer head width must be divisible by 8. Falling back to the default value 512\n");
+                }
+                break;
+
+            case 'Y':
+                config.gs8l_max_y = toupper(optarg[0]);
+                if (config.gs8l_max_y > 512) {
+                    fprintf(stderr, "If you set GS8L_MAX_Y value too high, a printer memory overflow error may occur\n");
+                }
+                break;
+
             case 'V':
                 fprintf(stderr, "%s %s (%s)\n", BINARY_NAME, PNG2POS_VERSION, PNG2POS_BUILTON);
                 fprintf(stderr, "%s %s\n", "LodePNG", LODEPNG_VERSION_STRING);
@@ -257,10 +274,14 @@ int main(int argc, char *argv[]) {
             case 'h':
                 fprintf(stderr,
                     "png2pos is a utility to convert PNG to ESC/POS\n"
-                    "Usage: %s [-V] [-h] [-c] [-a L|C|R] [-r] [-t THRESHOLD] [-p] [-o FILE] input files\n"
+                    "Usage: %s [-V] [-h] [-W WIDTH] [-Y HEIGHT] [-c] [-a L|C|R] [-r] [-t THRESHOLD] [-p] [-o FILE] input files\n"
                     "\n"
                     "  -V           display the version number and exit\n"
                     "  -h           display this short help and exit\n"
+                    "\n"
+                    "  -W WIDTH     printer head width\n"
+                    "  -Y HEIGHT    printer chunk height\n"
+                    "\n"
                     "  -c           cut the paper at the end of job\n"
                     "  -a L|C|R     horizontal image alignment (Left, Center, Right)\n"
                     "  -r           rotate image upside down before it is printed\n"
@@ -292,17 +313,48 @@ int main(int argc, char *argv[]) {
         }
     }
 
+// for better UX in Windows we want to detect that the app is not run by "double-clicking" in Windows Explorer GUI
+// raise a dialog box if the application is invoked by "double-click"
+// if argc > 1 do not display warning, because our app could be run within scheduler or via shortcut link etc.
+#ifdef __MINGW32__
+    if (argc == 1) {
+        HWND consoleWnd = GetConsoleWindow();
+        DWORD dwProcessId = 0;
+        GetWindowThreadProcessId(consoleWnd, &dwProcessId);
+
+        if (GetCurrentProcessId() == dwProcessId) {
+            INITCOMMONCONTROLSEX iccx = {
+                .dwSize = sizeof(iccx),
+                .dwICC = ICC_STANDARD_CLASSES
+            };
+            InitCommonControlsEx(&iccx);
+            MessageBoxW(NULL, L"png2pos is a console application. Please run it from command line (cmd.exe), "
+                "scheduler or another application.", L"png2pos", MB_OK | MB_ICONWARNING);
+            goto fail;
+        }
+    }
+#endif
+
     argc -= optind;
     argv += optind;
     optind = 0;
 
-    // open output file and disable line buffering
+// open output file and disable line buffering
+#ifdef __MINGW32__
+    if (!config.output || wcscmp(config.output, L"-") == 0) {
+        fout = stdout;
+    } else if (!(fout = _wfopen(config.output, L"wb"))) {
+        fprintf(stderr, "Could not open output file\n");
+        goto fail;
+    }
+#else
     if (!config.output || strcmp(config.output, "-") == 0) {
         fout = stdout;
     } else if (!(fout = fopen(config.output, "wb"))) {
         fprintf(stderr, "Could not open output file '%s'\n", config.output);
         goto fail;
     }
+#endif
 
     if (isatty(fileno(fout))) {
         fprintf(stderr, "This utility produces binary sequence printer commands. Output have to be redirected\n");
@@ -330,15 +382,15 @@ int main(int argc, char *argv[]) {
             goto fail;
         }
 
-        if (img_w > PRINTER_MAX_WIDTH) {
-            fprintf(stderr, "Image width %u px exceeds the printer's capability (%u px)\n", img_w, PRINTER_MAX_WIDTH);
+        if (img_w > config.printer_max_width) {
+            fprintf(stderr, "Image width %u px exceeds the printer's capability (%u px)\n", img_w, config.printer_max_width);
             goto fail;
         }
 
         unsigned int histogram[256] = { 0 };
 
         // convert RGBA to greyscale
-        const unsigned int img_grey_size = img_h * img_w;
+        unsigned int img_grey_size = img_h * img_w;
         img_grey = (unsigned char *)calloc(img_grey_size, 1);
         if (!img_grey) {
             fprintf(stderr, "Could not allocate enough memory\n");
@@ -347,17 +399,17 @@ int main(int argc, char *argv[]) {
 
         for (unsigned int i = 0; i != img_grey_size; ++i) {
             // A
-            const unsigned int a = img_rgba[(i << 2) | 3];
+            unsigned int a = img_rgba[(i << 2) | 3];
             // RGBA → RGB
-            const unsigned int r = (255 - a) + a / 255 * img_rgba[i << 2];
-            const unsigned int g = (255 - a) + a / 255 * img_rgba[(i << 2) | 1];
-            const unsigned int b = (255 - a) + a / 255 * img_rgba[(i << 2) | 2];
+            unsigned int r = (255 - a) + a / 255 * img_rgba[i << 2];
+            unsigned int g = (255 - a) + a / 255 * img_rgba[(i << 2) | 1];
+            unsigned int b = (255 - a) + a / 255 * img_rgba[(i << 2) | 2];
             // RGB → R'G'B'
-            const unsigned int r_ = GAMMA_22[r];
-            const unsigned int g_ = GAMMA_22[g];
-            const unsigned int b_ = GAMMA_22[b];
+            unsigned int r_ = GAMMA_22[r];
+            unsigned int g_ = GAMMA_22[g];
+            unsigned int b_ = GAMMA_22[b];
             // R'G'B' → luma Y' (!= luminance), ITU-R: BT.709
-            const unsigned int y_ = (55 * r_ + 182 * g_ + 18 * b_) / 255;
+            unsigned int y_ = (55 * r_ + 182 * g_ + 18 * b_) / 255;
             // Y' → lightness L*
             img_grey[i] = LIGHTNESS[y_];
 
@@ -417,7 +469,7 @@ int main(int argc, char *argv[]) {
             for (unsigned int i = 1; i != 256; ++i) {
                 histogram[i] = 0;
             }
-           for (unsigned int i = 0; i != img_grey_size; ++i) {
+            for (unsigned int i = 0; i != img_grey_size; ++i) {
                 ++histogram[img_grey[i]];
             }
 
@@ -458,17 +510,17 @@ int main(int argc, char *argv[]) {
                 { .dx =  0, .dy = 2 }
             };
             for (unsigned int i = 0; i != img_grey_size; ++i) {
-                const unsigned int o = img_grey[i];
-                const unsigned int n = o <= config.threshold ? 0x00 : 0xff;
+                unsigned int o = img_grey[i];
+                unsigned int n = o <= config.threshold ? 0x00 : 0xff;
                 // the residual quantization error 
-                const int d = (int)(o - n) / 8;
+                int d = (int)(o - n) / 8;
                 img_grey[i] = n;
-                const unsigned int x = i % img_w;
-                const unsigned int y = i / img_w;
+                unsigned int x = i % img_w;
+                unsigned int y = i / img_w;
 
                 for (unsigned int j = 0; j != DITHERING_MATRIX_SIZE; ++j) {
-                    const int x0 = x + dithering_matrix[j].dx;
-                    const int y0 = y + dithering_matrix[j].dy;
+                    int x0 = x + dithering_matrix[j].dx;
+                    int y0 = y + dithering_matrix[j].dy;
                     if (x0 >= img_w || x0 < 0 || y0 >= img_h) {
                         continue;
                     }
@@ -478,9 +530,9 @@ int main(int argc, char *argv[]) {
         }
 
         // canvas size is width of a picture rounded up to nearest multiple of 8
-        const unsigned int canvas_w = ((img_w + 7) >> 3) << 3;
+        unsigned int canvas_w = ((img_w + 7) >> 3) << 3;
 
-        const unsigned int img_bw_size = img_h * (canvas_w >> 3);
+        unsigned int img_bw_size = img_h * (canvas_w >> 3);
         img_bw = (unsigned char *)calloc(img_bw_size, 1);
         if (!img_bw) {
             fprintf(stderr, "Could not allocate enough memory\n");
@@ -494,10 +546,10 @@ int main(int argc, char *argv[]) {
 
         // compress bytes into bitmap
         for (unsigned int i = 0; i != img_grey_size; ++i) {
-            const unsigned int idx = config.rotate == 1 ? img_grey_size - 1 - i: i;
+            unsigned int idx = config.rotate == 1 ? img_grey_size - 1 - i: i;
             if (img_grey[idx] <= config.threshold) {
-                const unsigned int x = i % img_w;
-                const unsigned int y = i / img_w;
+                unsigned int x = i % img_w;
+                unsigned int y = i / img_w;
                 img_bw[(y * canvas_w + x) >> 3] |= 0x80 >> (x & 0x07);
             }
         }
@@ -515,11 +567,11 @@ int main(int argc, char *argv[]) {
         unsigned int offset = 0;
         switch (config.align) {
             case 'C':
-                offset = (PRINTER_MAX_WIDTH - canvas_w) >> 1;
+                offset = (config.printer_max_width - canvas_w) >> 1;
                 break;
 
             case 'R':
-                offset = PRINTER_MAX_WIDTH - canvas_w;
+                offset = config.printer_max_width - canvas_w;
                 break;
 
             case 'L':
@@ -532,7 +584,7 @@ int main(int argc, char *argv[]) {
         offset = (offset >> 3) << 3;
 
         // chunking, l = lines already printed, currently processing a chunk of height k
-        for (unsigned int l = 0, k = GS8L_MAX_Y; l < img_h; l += k) {
+        for (unsigned int l = 0, k = config.gs8l_max_y; l < img_h; l += k) {
             if (k > img_h - l) {
                 k = img_h - l;
             }
@@ -543,7 +595,7 @@ int main(int argc, char *argv[]) {
                 print(fout, ESC_OFFSET, ESC_OFFSET_LENGTH);
             }
 
-            const unsigned int f112_p = 10 + k * (canvas_w >> 3);
+            unsigned int f112_p = 10 + k * (canvas_w >> 3);
             ESC_STORE[ 3] = f112_p & 0xff;
             ESC_STORE[ 4] = f112_p >> 8 & 0xff;
             ESC_STORE[13] = canvas_w & 0xff;
@@ -576,6 +628,16 @@ fail:
     if (fout != NULL && fout != stdout) {
         fclose(fout), fout = NULL;
     }
+
+#ifdef __MINGW32__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    if (argw != NULL) {
+        LocalFree(argw), argw = NULL;
+        argwc = 0;
+    }
+#pragma GCC diagnostic pop
+#endif
 
     return ret;
 }
