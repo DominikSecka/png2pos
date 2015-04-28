@@ -10,7 +10,7 @@ See LICENSE for more details on licensing options.
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.6";
+const char *PNG2POS_VERSION = "1.6.7";
 const char *PNG2POS_BUILTON = __DATE__;
 
 // Windows (MINGW) support
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'W':
-                config.printer_max_width = toupper(optarg[0]);
+                config.printer_max_width = strtoul(optarg, NULL, 0);
                 // config.printer_max_width must be divisible by 8!!
                 if (config.printer_max_width % 8 != 0) {
                     config.printer_max_width = 512u;
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'Y':
-                config.gs8l_max_y = toupper(optarg[0]);
+                config.gs8l_max_y = strtoul(optarg, NULL, 0);
                 if (config.gs8l_max_y > 512) {
                     fprintf(stderr, "If you set GS8L_MAX_Y value too high, a printer memory overflow error may occur\n");
                 }
