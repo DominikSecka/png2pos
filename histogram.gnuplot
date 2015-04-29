@@ -1,7 +1,7 @@
 #!/usr/bin/gnuplot
 
 set terminal png notransparent nointerlace font 'Helvetica' 11 size 800,510 
-set output 'debug/histogram.png'
+set output 'debug_histogram.png'
 
 set title 'Histogram'
 set style data histogram
@@ -17,5 +17,5 @@ set ylabel 'frequency'
 set autoscale y
 unset ytics
 
-plot 'debug/histogram.txt' using 2 title 'raw', \
-	'debug/histogram_pp.txt' using 2 title 'post-processed'
+plot 'debug_histogram.txt' using 2 title 'raw', \
+	'debug_histogram_pp.txt' using 2 title 'post-processed'
