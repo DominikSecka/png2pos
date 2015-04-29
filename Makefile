@@ -22,7 +22,7 @@ strip : $(EXEC)
 .PHONY : clean
 clean :
 	-rm -f $(OBJS) $(EXEC)
-	-rm *.pos *.gz debug/*
+	-rm *.pos *.gz
 
 $(EXEC) : $(OBJS)
 	$(CC) $(OBJS) $(LDFLAGS) -o $@ 
@@ -59,12 +59,10 @@ profiled :
 	make CFLAGS="$(CFLAGS) -fprofile-use" strip
 	-rm -f $(OBJS) *.gcda *.gcno *.dyn pgopti.dpi pgopti.dpi.lock
 
-install : all man
+install : strip man
 	mkdir -p $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/share/man/man1
 	install -m755 $(EXEC) $(DESTDIR)$(PREFIX)/bin
 	install -m644 $(EXEC).1.gz $(DESTDIR)$(PREFIX)/share/man/man1
-
-install-strip : strip install
 
 uninstall :
 	rm $(DESTDIR)$(PREFIX)/bin/$(EXEC)

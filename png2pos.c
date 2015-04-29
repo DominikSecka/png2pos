@@ -26,7 +26,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.4";
+const char *PNG2POS_VERSION = "1.6.8";
 const char *PNG2POS_BUILTON = __DATE__;
 
 // modified lodepng allocators

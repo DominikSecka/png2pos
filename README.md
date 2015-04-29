@@ -2,7 +2,6 @@
 [![Build Status](https://travis-ci.org/petrkutalek/png2pos.svg?branch=master)](https://travis-ci.org/petrkutalek/png2pos)
 [![Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4TNCBPJT2R4MC)
 
-
 png2pos is a utility to convert PNG images to ESC/POS format (printer control codes and escape sequences) used by POS thermal printers. Output file can be just sent to printer.
 
 **png2pos does not contain any Epson drivers, it is not a driver/filter replacement… png2pos is just a utility for embedded projects, for whose printing PNG files is sufficient and ideal lightweight solution.**
@@ -77,16 +76,16 @@ If you prefer to build binary file yourself, clone the source code:
 
 To build and install binary just type:
 
-    $ make install-strip ↵
+    $ make install ↵
 
 On Mac typically you can use clang preprocessor:
 
-    $ make CC=clang install-strip ↵
+    $ make CC=clang install ↵
 
 On Linux you can also build static binary (e.g. also based on [musl](http://www.musl-libc.org/intro.html)):
 
     $ make CC=/usr/local/musl/bin/musl-gcc static ↵
-    $ make install-strip ↵
+    $ make install ↵
 
 Windows binary is build in MinGW by (MinGW must be included in PATH):
 
@@ -98,15 +97,9 @@ target | make will build…
 :----- | :------
 (empty)  | png2pos
 clean | (removes intermediate products)
-man | compressed man page
 strip | stripped version (suggested)
 profiled | profiled version (up to 3 % performance gain on repeat tasks)
 install | install png2pos into PREFIX (default /usr/local)
-install-strip | install stripped version into PREFIX (default /usr/local)
-debug | debug version (creates PNG temp file after each step in processing chain)
-rpi | Raspberry Pi optimized version
-static | static binary (does not work on OS X, see [Makefile](./Makefile#L42:L44))
-analyze | clang static analyzer (OS X)
 
 png2pos has no lib dependencies and is easy to build and run on Linux, Mac and Windows.
 
