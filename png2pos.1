@@ -5,8 +5,6 @@ png2pos \- a utility to convert PNG images to ESC/POS format
 \fBpng2pos\fR
 [\fB\-V\fR]
 [\fB\-h\fR]
-[\fB\-W\fR \fIWIDTH\fR]
-[\fB\-Y\fR \fIHEIGHT\fR]
 [\fB\-c\fR]
 [\fB\-a\fR \fIL|C|R\fR]
 [\fB\-r\fR]
@@ -30,14 +28,6 @@ display the version number and exit
 .TP
 .BR \-h
 display this short help and exit
-.TP
-.BR "\-W \fIWIDTH\fR"
-set printer head width in pixels (printer related), falling back to the default value 512 (= 72 mm printers) if not set;
-You probably need to specify 384 for 56 mm printers, 576 for some high-density 72 mm printers.
-Value must be divisible by 8!
-.TP
-.BR "\-Y \fIHEIGHT\fR"
-set chunk height used for GS8L command (printer related), falling back to the default value 768 if not set
 .TP
 .BR \-c
 cut the paper at the end of job

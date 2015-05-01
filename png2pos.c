@@ -251,6 +251,7 @@ int main(int argc, char *argv[]) {
             case 'V':
                 fprintf(stderr, "%s %s (%s)\n", BINARY_NAME, PNG2POS_VERSION, PNG2POS_BUILTON);
                 fprintf(stderr, "%s %s\n", "LodePNG", LODEPNG_VERSION_STRING);
+                fprintf(stderr, "-D PRINTER_MAX_WIDTH=%u GS8L_MAX_Y=%u\n", PRINTER_MAX_WIDTH, GS8L_MAX_Y);
                 ret = EXIT_SUCCESS;
                 goto fail;
 
@@ -512,10 +513,10 @@ int main(int argc, char *argv[]) {
 #endif
 
         // left offset
-        unsigned int offset = 0;
+        int offset = 0;
         switch (config.align) {
             case 'C':
-                offset = (PRINTER_MAX_WIDTH - canvas_w) >> 1;
+                offset = (PRINTER_MAX_WIDTH - canvas_w) / 2;
                 break;
 
             case 'R':
@@ -528,8 +529,12 @@ int main(int argc, char *argv[]) {
                 offset = 0;
         }
 
+        if (offset < 0) {
+            offset = 0;
+        }
+
         // offset have to be a multiple of 8
-        offset = (offset >> 3) << 3;
+        offset &= ~0x7;
 
         // chunking, l = lines already printed, currently processing a chunk of height k
         for (unsigned int l = 0, k = GS8L_MAX_Y; l < img_h; l += k) {
