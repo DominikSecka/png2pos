@@ -22,6 +22,11 @@ png2pos is:
 
 Check [Supported Printers](./compatibility.md) page.
 
+## Printing on Windows
+
+In file [print.cmd](./print.cmd) replace PRINTER with your printer's device. Now you can drag & drop your PNG file into this shortcut to directly print it on your thermal printer. 
+For further details, please check [this blog post](http://mike.bitrevision.com/blog/2015-04-getting-a-usb-receipt-printer-working-on-windows).
+
 ## How does it work?
 
 It accepts any PNG file (B/W, greyscale, RGB, RGBA), applies Histogram Equalization Algorithm and via Atkinson Dithering Algorithm converts it to B/W bitmap wrapped by ESC/POS commands.
