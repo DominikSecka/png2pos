@@ -19,7 +19,7 @@ strip : $(EXEC)
 .PHONY : clean
 clean :
 	-del $(OBJS) $(EXEC)
-	-del *.pos *.gz debug/*.png
+	-del *.pos *.gz
 
 $(EXEC) : $(OBJS)
 	$(CC) $(OBJS) $(LDFLAGS) -o $@

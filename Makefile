@@ -46,11 +46,6 @@ static : all
 rpi : CFLAGS += -march=armv6j -mfpu=vfp -mfloat-abi=hard
 rpi : strip
 
-debug : CFLAGS += -DDEBUG -DLODEPNG_COMPILE_ENCODER
-debug : all
-	-mkdir debug
-	#-gnuplot histogram.gnuplot
-
 profiled :
 	make CFLAGS="$(CFLAGS) -fprofile-generate" $(EXEC)
 	find . -type f -exec ./$(EXEC) -o /dev/null -c -r -a c {} \;

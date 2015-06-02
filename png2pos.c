@@ -98,7 +98,7 @@ const unsigned char ESC_FLUSH[ESC_FLUSH_LENGTH] = {
 // number of dots/lines in vertical direction in one F112 command
 // set to <= 128u for Epson TM-J2000/J2100
 #ifndef GS8L_MAX_Y
-#define GS8L_MAX_Y 256u
+#define GS8L_MAX_Y 384u
 #endif
 
 // max image width printer is able to process
@@ -368,21 +368,6 @@ int main(int argc, char *argv[]) {
 
         free(img_rgba), img_rgba = NULL;
 
-#ifdef DEBUG
-        lodepng_encode_file("debug/g.png", img_grey, img_w, img_h, LCT_GREY, 8);
-
-        // draw histogram via gnuplot, write dataset
-        FILE *fhist = fopen("debug/histogram.txt", "w");
-        if (fhist) {
-            fprintf(fhist, "#hue\tcount\n");
-            for (unsigned int i = 0; i != 256; ++i) {
-                fprintf(fhist, "%d\t%d\n", i, histogram[i]);
-            }
-            fprintf(fhist, "#EOF\n");
-        }
-        fclose(fhist), fhist = NULL;
-#endif
-
         {
             // -p hints
             unsigned int colors = 0;
@@ -412,27 +397,6 @@ int main(int argc, char *argv[]) {
             config.threshold = 255 * histogram[config.threshold] / img_grey_size;
             fprintf(stderr, "Threshold shift, new value = %d\n", config.threshold);
 
-#ifdef DEBUG
-            lodepng_encode_file("debug/g_pp.png", img_grey, img_w, img_h, LCT_GREY, 8);
-
-            for (unsigned int i = 1; i != 256; ++i) {
-                histogram[i] = 0;
-            }
-           for (unsigned int i = 0; i != img_grey_size; ++i) {
-                ++histogram[img_grey[i]];
-            }
-
-            // draw histogram via gnuplot, write dataset
-            FILE *fhist = fopen("debug/histogram_pp.txt", "w");
-            if (fhist) {
-                fprintf(fhist, "#hue\tcount\n");
-                for (unsigned int i = 0; i != 256; ++i) {
-                    fprintf(fhist, "%d\t%d\n", i, histogram[i]);
-                }
-                fprintf(fhist, "#EOF\n");
-            }
-            fclose(fhist), fhist = NULL;
-#endif
             // http://www.tannerhelland.com/4660/dithering-eleven-algorithms-source-code/
             // One of the best dithering algorithms from mid-1980's was developed by Bill Atkinson,
             // a Apple employee who worked on everything from MacPaint (which he wrote from scratch
@@ -479,7 +443,7 @@ int main(int argc, char *argv[]) {
         }
 
         // canvas size is width of a picture rounded up to nearest multiple of 8
-        const unsigned int canvas_w = ((img_w + 7) >> 3) << 3;
+        const unsigned int canvas_w = (img_w + 7) & ~0x7u;
 
         const unsigned int img_bw_size = img_h * (canvas_w >> 3);
         img_bw = (unsigned char *)calloc(img_bw_size, 1);
@@ -495,7 +459,7 @@ int main(int argc, char *argv[]) {
 
         // compress bytes into bitmap
         for (unsigned int i = 0; i != img_grey_size; ++i) {
-            const unsigned int idx = config.rotate == 1 ? img_grey_size - 1 - i: i;
+            const unsigned int idx = config.rotate == 0 ? i : (img_grey_size - 1) - i;
             if (img_grey[idx] <= config.threshold) {
                 const unsigned int x = i % img_w;
                 const unsigned int y = i / img_w;
@@ -504,13 +468,6 @@ int main(int argc, char *argv[]) {
         }
 
         free(img_grey), img_grey = NULL;
-
-#ifdef DEBUG
-        //for (unsigned int i = 0; i != img_bw_size; ++i) {
-        //    img_bw[i] = ~img_bw[i];
-        //}
-        lodepng_encode_file("debug/bw_inv.png", img_bw, canvas_w, img_h, LCT_GREY, 1);
-#endif
 
         // left offset
         int offset = 0;
@@ -534,7 +491,7 @@ int main(int argc, char *argv[]) {
         }
 
         // offset have to be a multiple of 8
-        offset &= ~0x7;
+        offset &= ~0x7u;
 
         // chunking, l = lines already printed, currently processing a chunk of height k
         for (unsigned int l = 0, k = GS8L_MAX_Y; l < img_h; l += k) {
