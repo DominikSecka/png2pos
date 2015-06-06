@@ -41,38 +41,17 @@ png2pos converts RGBA images into greyscale version via algorithm compliant with
 
 ## Pricing and Support
 
-png2pos is free MIT-licensed software provided as is. **Unfortunately I am unable to provide you with free support**.
-If you like png2pos and use it, please let me know, it motivates me in further development.
+png2pos is free MIT-licensed software provided as is. If you like png2pos and use it, please let me know, it motivates me in further development. 
+
+**Unfortunately I am unable to provide you with free support. Please, do not ever ask me to assist you with source code modifications or to make a special build for you etc., if you use png2pos for your business (especially if you have not donated to its development). It is your job you are paid for.**
 
 Important: png2pos will *never ever* be like Emacs; it is simple and specialized utility.
 
 There is also an alternative project called [png2escpos](https://github.com/twg/png2escpos) created by The Working Group Inc. It's younger, simpler and uses libpng. png2pos is in all aspects mature, nevertheless you may like alternative even more.
 
-## Precompiled binary packages
-
-There are available prepared builds for some common platforms in [Releases](https://github.com/petrkutalek/png2pos/releases) section.
-
-Please, if you use GPG, verify also attached GPG signature:
-
-Import public key into temporary keyring (you can import it into your permanent keyring of course) and verify ZIP file's ASC signature:
-
-    $ curl https://forers.com/494CD31C.asc | gpg --no-default-keyring --keyring ./gpg-png2pos.tmp --import ↵
-    gpg: key 494CD31C: public key "Petr Kutalek <petr.kutalek@forers.com>" imported
-    gpg: Total number processed: 1
-    gpg: imported: 1 (RSA: 1)
-
-    $ gpg --no-default-keyring --keyring ./gpg-png2pos.tmp --verify png2pos-v1.5.4-rpi.zip.asc ↵
-    gpg: Signature made Thu Jan 1 20:42:13 2015 CET using RSA key ID 494CD31C
-    gpg: Good signature from "Petr Kutalek <petr.kutalek@forers.com>"
-    gpg: WARNING: This key is not certified with a trusted signature!
-    gpg: There is no indication that the signature belongs to the owner.
-    Primary key fingerprint: 06EB BE07 4850 3817 8533 B45D C1D9 23EB 494C D31C
-
-    $ rm ./gpg-png2pos.*
-
 ## Build
 
-If you prefer to build binary file yourself, clone the source code:
+You have to build binary file yourself. Clone the source code:
 
     $ git clone https://github.com/petrkutalek/png2pos.git ↵
     $ cd png2pos ↵
