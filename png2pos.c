@@ -19,6 +19,11 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#ifdef I18N
+#include <libintl.h>
+#define _(s) gettext(s)
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -26,9 +31,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.8";
+const char *PNG2POS_VERSION = "1.6.10";
 const char *PNG2POS_BUILTON = __DATE__;
 
+#ifdef LODEPNG_NO_COMPILE_ALLOCATORS
 // modified lodepng allocators
 void* lodepng_malloc(size_t size) {
     return calloc(size, sizeof(char));
@@ -41,6 +47,7 @@ void* lodepng_realloc(void *ptr, size_t new_size) {
 void lodepng_free(void *ptr) {
     free(ptr);
 }
+#endif
 
 // ESC sequences
 #define ESC_INIT_LENGTH 2
@@ -100,11 +107,13 @@ const unsigned char ESC_FLUSH[ESC_FLUSH_LENGTH] = {
 #ifndef GS8L_MAX_Y
 #define GS8L_MAX_Y 384u
 #endif
+unsigned int gs8l_max_y = 0;
 
 // max image width printer is able to process
 #ifndef PRINTER_MAX_WIDTH
 #define PRINTER_MAX_WIDTH 512u
 #endif
+unsigned int printer_max_width = 0;
 
 // app configuration
 struct {
@@ -166,7 +175,7 @@ const unsigned char LIGHTNESS[256] = {
 FILE *fout = NULL;
 
 // keeps value in the <min; max> interval
-inline int rebound(const int value, const int min, const int max) {
+int rebound(const int value, const int min, const int max) {
     int a = value;
     if (a < min) {
         a = min;
@@ -177,16 +186,6 @@ inline int rebound(const int value, const int min, const int max) {
     return a;
 }
 
-char* basename(const char *s) {
-    char *r = (char*)s;
-    while (*s) {
-        if (*s++ == '/') {
-            r = (char*)s;
-        }
-    }
-    return r;
-}
-
 void print(FILE *stream, const unsigned char *buffer, const unsigned int length) {
     for (unsigned int i = 0; i != length; ++i) {
         fputc(buffer[i], stream);
@@ -194,21 +193,18 @@ void print(FILE *stream, const unsigned char *buffer, const unsigned int length)
 }
 
 int main(int argc, char *argv[]) {
-    {
-        // PRINTER_MAX_WIDTH must be divisible by 8!!
-        if (PRINTER_MAX_WIDTH % 8 != 0) {
-            fprintf(stderr, "FATAL ERROR: PRINTER_MAX_WIDTH MUST BE DIVISIBLE BY 8, PLEASE RECOMPILE\n");
-            return EXIT_FAILURE;
-        }
-    }
+    int ret = EXIT_FAILURE;
 
     unsigned char *img_rgba = NULL;
     unsigned char *img_grey = NULL;
     unsigned char *img_bw = NULL;
 
-    const char *BINARY_NAME = basename(argv[0]);
-
-    int ret = EXIT_FAILURE;
+#ifdef I18N
+    setlocale(LC_MESSAGES, "");
+    setlocale(LC_CTYPE, "");
+    bindtextdomain("png2pos", "/usr/local/share/locale");
+    textdomain("png2pos");
+#endif
 
     // http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html
     // Utility Conventions: 12.1 Utility Argument Syntax
@@ -249,16 +245,16 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'V':
-                fprintf(stderr, "%s %s (%s)\n", BINARY_NAME, PNG2POS_VERSION, PNG2POS_BUILTON);
+                fprintf(stderr, "%s %s (%s)\n", "png2pos", PNG2POS_VERSION, PNG2POS_BUILTON);
                 fprintf(stderr, "%s %s\n", "LodePNG", LODEPNG_VERSION_STRING);
-                fprintf(stderr, "-D PRINTER_MAX_WIDTH=%u GS8L_MAX_Y=%u\n", PRINTER_MAX_WIDTH, GS8L_MAX_Y);
+                fprintf(stderr, "config defaults: PRINTER_MAX_WIDTH=%u GS8L_MAX_Y=%u\n", PRINTER_MAX_WIDTH, GS8L_MAX_Y);
                 ret = EXIT_SUCCESS;
                 goto fail;
 
             case 'h':
                 fprintf(stderr,
                     "png2pos is a utility to convert PNG to ESC/POS\n"
-                    "Usage: %s [-V] [-h] [-c] [-a L|C|R] [-r] [-t THRESHOLD] [-p] [-o FILE] input files\n"
+                    "Usage: png2pos [-V] [-h] [-c] [-a L|C|R] [-r] [-t THRESHOLD] [-p] [-o FILE] INPUT_FILES...\n"
                     "\n"
                     "  -V           display the version number and exit\n"
                     "  -h           display this short help and exit\n"
@@ -271,24 +267,22 @@ int main(int argc, char *argv[]) {
                     "\n"
                     "With no FILE, or when FILE is -, write to standard output\n"
                     "\n"
-                    "Please read the manual page (man %s)\n"
+                    "Please read the manual page (man png2pos)\n"
                     "Report bugs at https://github.com/petrkutalek/png2pos/issues\n"
                     "(c) Petr Kutalek <petr@kutalek.cz>, 2012 - 2015, Licensed under the MIT license\n"
-                    ,
-                    BINARY_NAME, BINARY_NAME
                 );
                 ret = EXIT_SUCCESS;
                 goto fail;
 
             case ':':
                 fprintf(stderr, "Option '%c' requires an argument\n", optopt);
-                fprintf(stderr, "For usage options run '%s -h'\n", BINARY_NAME);
+                fprintf(stderr, "For usage options run 'png2pos -h'\n");
                 goto fail;
 
             default:
             case '?':
                 fprintf(stderr, "'%c' is an unknown option\n", optopt);
-                fprintf(stderr, "For usage options run '%s -h'\n", BINARY_NAME);
+                fprintf(stderr, "For usage options run 'png2pos -h'\n");
                 goto fail;
         }
     }
@@ -297,12 +291,33 @@ int main(int argc, char *argv[]) {
     argv += optind;
     optind = 0;
 
+    {
+        printer_max_width = PRINTER_MAX_WIDTH;
+        const char *printer_max_width_env = getenv("PNG2POS_PRINTER_MAX_WIDTH");
+        if (printer_max_width_env) {
+            printer_max_width = strtoul(printer_max_width_env, NULL, 0);
+        }
+        // printer_max_width must be divisible by 8!!
+        printer_max_width &= ~0x7u;
+    }
+
+    {
+        gs8l_max_y = GS8L_MAX_Y;
+        const char *gs8l_max_y_env = getenv("PNG2POS_GS8L_MAX_Y");
+        if (gs8l_max_y_env) {
+            gs8l_max_y = strtoul(gs8l_max_y_env, NULL, 0);
+        }
+    }
+
     // open output file and disable line buffering
-    if (!config.output || strcmp(config.output, "-") == 0) {
+    if (!config.output || !strcmp(config.output, "-")) {
         fout = stdout;
-    } else if (!(fout = fopen(config.output, "wb"))) {
-        fprintf(stderr, "Could not open output file '%s'\n", config.output);
-        goto fail;
+    } else {
+        fout = fopen(config.output, "wb");
+        if (!fout) {
+            fprintf(stderr, "Could not open output file '%s'\n", config.output);
+            goto fail;
+        }
     }
 
     if (isatty(fileno(fout))) {
@@ -310,7 +325,7 @@ int main(int argc, char *argv[]) {
         goto fail;
     }
 
-    if (setvbuf(fout, NULL, _IOFBF, 8192) != 0) {
+    if (setvbuf(fout, NULL, _IOFBF, 8192)) {
         fprintf(stderr, "Could not set new buffer policy on output stream\n");
     }
 
@@ -331,8 +346,8 @@ int main(int argc, char *argv[]) {
             goto fail;
         }
 
-        if (img_w > PRINTER_MAX_WIDTH) {
-            fprintf(stderr, "Image width %u px exceeds the printer's capability (%u px)\n", img_w, PRINTER_MAX_WIDTH);
+        if (img_w > printer_max_width) {
+            fprintf(stderr, "Image width %u px exceeds the printer's capability (%u px)\n", img_w, printer_max_width);
             goto fail;
         }
 
@@ -372,7 +387,7 @@ int main(int argc, char *argv[]) {
             // -p hints
             unsigned int colors = 0;
             for (unsigned int i = 0; i != 256; ++i) {
-                if (histogram[i] > 0) {
+                if (histogram[i]) {
                     ++colors;
                 }
             }
@@ -473,11 +488,11 @@ int main(int argc, char *argv[]) {
         int offset = 0;
         switch (config.align) {
             case 'C':
-                offset = (PRINTER_MAX_WIDTH - canvas_w) / 2;
+                offset = (printer_max_width - canvas_w) / 2;
                 break;
 
             case 'R':
-                offset = PRINTER_MAX_WIDTH - canvas_w;
+                offset = printer_max_width - canvas_w;
                 break;
 
             case 'L':
@@ -494,12 +509,12 @@ int main(int argc, char *argv[]) {
         offset &= ~0x7u;
 
         // chunking, l = lines already printed, currently processing a chunk of height k
-        for (unsigned int l = 0, k = GS8L_MAX_Y; l < img_h; l += k) {
+        for (unsigned int l = 0, k = gs8l_max_y; l < img_h; l += k) {
             if (k > img_h - l) {
                 k = img_h - l;
             }
 
-            if (offset != 0) {
+            if (offset) {
                 ESC_OFFSET[2] = offset & 0xff;
                 ESC_OFFSET[3] = offset >> 8 & 0xff;
                 print(fout, ESC_OFFSET, ESC_OFFSET_LENGTH);
@@ -522,7 +537,7 @@ int main(int argc, char *argv[]) {
         free(img_bw), img_bw = NULL;
    }
 
-    if (config.cut == 1) {
+    if (config.cut) {
         // cut the paper
         print(fout, ESC_CUT, ESC_CUT_LENGTH);
         fflush(fout);
@@ -535,7 +550,7 @@ fail:
     free(img_grey), img_grey = NULL;
     free(img_bw), img_bw = NULL;
 
-    if (fout != NULL && fout != stdout) {
+    if (fout && fout != stdout) {
         fclose(fout), fout = NULL;
     }
 

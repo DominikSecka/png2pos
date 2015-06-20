@@ -14,3 +14,5 @@ Epson TM-P60 |  |
 Epson TM-J2000/J2100 |  | GS8L_MAX_Y=128
 PRT PT562A-B | tested |
 PRT PT802A-B | tested |
+
+PRINTER_MAX_WIDTH and GS8L_MAX_Y values could be changed during compilation, or via ```PNG2POS_PRINTER_MAX_WIDTH``` and ```PNG2POS_GS8L_MAX_Y``` shell variables. Please see man page for further details.
