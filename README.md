@@ -2,6 +2,8 @@
 [![Build Status](https://travis-ci.org/petrkutalek/png2pos.svg?branch=master)](https://travis-ci.org/petrkutalek/png2pos)
 [![Paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=4TNCBPJT2R4MC)
 
+**NOTE: png2pos fulfills its purpose and does it well. I do not intend to develop it any more. It is licensed under MIT: anyone can use it for free, anyone has the right to modify it unless the name "png2pos" is being used for further releases.**
+
 png2pos is a utility to convert PNG images to ESC/POS format (printer control codes and escape sequences) used by POS thermal printers. Output file can be just sent to printer.
 
 **png2pos does not contain any Epson drivers, it is not a driver/filter replacement… png2pos is just a utility for embedded projects, for whose printing PNG files is sufficient and ideal lightweight solution.**

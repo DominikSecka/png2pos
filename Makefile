@@ -7,7 +7,6 @@ CFLAGS += -std=c99 -O2 -Wall -pedantic \
 	-DLODEPNG_NO_COMPILE_ALLOCATORS \
 	-DLODEPNG_NO_COMPILE_ENCODER
 LDFLAGS +=
-#LDFLAGS += -lintl
 PREFIX := /usr/local
 
 OBJS = lodepng.o png2pos.o
@@ -33,13 +32,6 @@ $(EXEC) : $(OBJS)
 
 %.1.gz : %.1
 	gzip -c -9 $< > $@
-
-%.po : %.c
-	xgettext -d png2pos -k_ -o $@ -s $<
-
-#/usr/local/share/locale/??/LC_MESSAGES/ 
-%.mo : %.po
-	msgfmt $< -o $@
 
 analyze : png2pos.c
 	clang --analyze -Xanalyzer -analyzer-output=text $(CFLAGS) $<

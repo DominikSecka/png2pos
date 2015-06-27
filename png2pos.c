@@ -19,11 +19,6 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifdef I18N
-#include <libintl.h>
-#define _(s) gettext(s)
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -31,7 +26,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.10";
+const char *PNG2POS_VERSION = "1.6.11";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
@@ -107,13 +102,11 @@ const unsigned char ESC_FLUSH[ESC_FLUSH_LENGTH] = {
 #ifndef GS8L_MAX_Y
 #define GS8L_MAX_Y 384u
 #endif
-unsigned int gs8l_max_y = 0;
 
 // max image width printer is able to process
 #ifndef PRINTER_MAX_WIDTH
 #define PRINTER_MAX_WIDTH 512u
 #endif
-unsigned int printer_max_width = 0;
 
 // app configuration
 struct {
@@ -123,13 +116,17 @@ struct {
     unsigned int rotate;
     const char *output;
     unsigned int threshold;
+    unsigned int gs8l_max_y;
+    unsigned int printer_max_width;
 } config = {
     .cut = 0,
     .photo = 0,
     .align = '?',
     .rotate = 0,
     .output = NULL,
-    .threshold = 0x80
+    .threshold = 0x80,
+    .gs8l_max_y = GS8L_MAX_Y,
+    .printer_max_width = PRINTER_MAX_WIDTH
 };
 
 // Gamma 2.2 lookup table
@@ -175,18 +172,18 @@ const unsigned char LIGHTNESS[256] = {
 FILE *fout = NULL;
 
 // keeps value in the <min; max> interval
-int rebound(const int value, const int min, const int max) {
+inline int rebound(const int value, const int min, const int max) {
     int a = value;
-    if (a < min) {
-        a = min;
-    }
-    else if (a > max) {
+    if (a > max) {
         a = max;
+    }
+    else if (a < min) {
+        a = min;
     }
     return a;
 }
 
-void print(FILE *stream, const unsigned char *buffer, const unsigned int length) {
+void print(FILE *stream, const unsigned char *buffer, const size_t length) {
     for (unsigned int i = 0; i != length; ++i) {
         fputc(buffer[i], stream);
     }
@@ -198,13 +195,6 @@ int main(int argc, char *argv[]) {
     unsigned char *img_rgba = NULL;
     unsigned char *img_grey = NULL;
     unsigned char *img_bw = NULL;
-
-#ifdef I18N
-    setlocale(LC_MESSAGES, "");
-    setlocale(LC_CTYPE, "");
-    bindtextdomain("png2pos", "/usr/local/share/locale");
-    textdomain("png2pos");
-#endif
 
     // http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html
     // Utility Conventions: 12.1 Utility Argument Syntax
@@ -247,7 +237,6 @@ int main(int argc, char *argv[]) {
             case 'V':
                 fprintf(stderr, "%s %s (%s)\n", "png2pos", PNG2POS_VERSION, PNG2POS_BUILTON);
                 fprintf(stderr, "%s %s\n", "LodePNG", LODEPNG_VERSION_STRING);
-                fprintf(stderr, "config defaults: PRINTER_MAX_WIDTH=%u GS8L_MAX_Y=%u\n", PRINTER_MAX_WIDTH, GS8L_MAX_Y);
                 ret = EXIT_SUCCESS;
                 goto fail;
 
@@ -266,6 +255,10 @@ int main(int argc, char *argv[]) {
                     "  -o FILE      output file\n"
                     "\n"
                     "With no FILE, or when FILE is -, write to standard output\n"
+                    "\n"
+                    "The following environment variables are recognized by png2pos:\n"
+                    "  PNG2POS_PRINTER_MAX_WIDTH\n"
+                    "  PNG2POS_GS8L_MAX_Y\n"
                     "\n"
                     "Please read the manual page (man png2pos)\n"
                     "Report bugs at https://github.com/petrkutalek/png2pos/issues\n"
@@ -292,20 +285,18 @@ int main(int argc, char *argv[]) {
     optind = 0;
 
     {
-        printer_max_width = PRINTER_MAX_WIDTH;
         const char *printer_max_width_env = getenv("PNG2POS_PRINTER_MAX_WIDTH");
         if (printer_max_width_env) {
-            printer_max_width = strtoul(printer_max_width_env, NULL, 0);
+            config.printer_max_width = strtoul(printer_max_width_env, NULL, 0);
         }
         // printer_max_width must be divisible by 8!!
-        printer_max_width &= ~0x7u;
+        config.printer_max_width &= ~0x7u;
     }
 
     {
-        gs8l_max_y = GS8L_MAX_Y;
         const char *gs8l_max_y_env = getenv("PNG2POS_GS8L_MAX_Y");
         if (gs8l_max_y_env) {
-            gs8l_max_y = strtoul(gs8l_max_y_env, NULL, 0);
+            config.gs8l_max_y = strtoul(gs8l_max_y_env, NULL, 0);
         }
     }
 
@@ -346,8 +337,8 @@ int main(int argc, char *argv[]) {
             goto fail;
         }
 
-        if (img_w > printer_max_width) {
-            fprintf(stderr, "Image width %u px exceeds the printer's capability (%u px)\n", img_w, printer_max_width);
+        if (img_w > config.printer_max_width) {
+            fprintf(stderr, "Image width %u px exceeds the printer's capability (%u px)\n", img_w, config.printer_max_width);
             goto fail;
         }
 
@@ -391,17 +382,17 @@ int main(int argc, char *argv[]) {
                     ++colors;
                 }
             }
-            if (colors < 16 && config.photo == 1) {
+            if (colors < 16 && config.photo) {
                 fprintf(stderr, "Image seems to be B/W. -p is probably not good option this time\n");
             }
-            if (colors >= 16 && config.photo == 0) {
+            if (colors >= 16 && !config.photo) {
                 fprintf(stderr, "Image seems to be greyscale or colored. Maybe you should use options -p and -t for better results\n");
             }
         }
 
         // post-processing
         // convert to B/W bitmap
-        if (config.photo == 1) {
+        if (config.photo) {
             // Histogram Equalization Algorithm
             for (unsigned int i = 1; i != 256; ++i) {
                 histogram[i] += histogram[i - 1];
@@ -468,13 +459,13 @@ int main(int argc, char *argv[]) {
         }
 
         // align rotated image to the right border
-        if (config.rotate == 1 && config.align == '?') {
+        if (config.rotate && config.align == '?') {
             config.align = 'R';
         }
 
         // compress bytes into bitmap
         for (unsigned int i = 0; i != img_grey_size; ++i) {
-            const unsigned int idx = config.rotate == 0 ? i : (img_grey_size - 1) - i;
+            const unsigned int idx = !config.rotate ? i : (img_grey_size - 1) - i;
             if (img_grey[idx] <= config.threshold) {
                 const unsigned int x = i % img_w;
                 const unsigned int y = i / img_w;
@@ -488,11 +479,11 @@ int main(int argc, char *argv[]) {
         int offset = 0;
         switch (config.align) {
             case 'C':
-                offset = (printer_max_width - canvas_w) / 2;
+                offset = (config.printer_max_width - canvas_w) / 2;
                 break;
 
             case 'R':
-                offset = printer_max_width - canvas_w;
+                offset = config.printer_max_width - canvas_w;
                 break;
 
             case 'L':
@@ -509,7 +500,7 @@ int main(int argc, char *argv[]) {
         offset &= ~0x7u;
 
         // chunking, l = lines already printed, currently processing a chunk of height k
-        for (unsigned int l = 0, k = gs8l_max_y; l < img_h; l += k) {
+        for (unsigned int l = 0, k = config.gs8l_max_y; l < img_h; l += k) {
             if (k > img_h - l) {
                 k = img_h - l;
             }
