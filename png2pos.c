@@ -5,7 +5,7 @@
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.12";
+const char *PNG2POS_VERSION = "1.6.13";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
@@ -28,6 +28,14 @@ void lodepng_free(void *ptr) {
 const unsigned char ESC_INIT[ESC_INIT_LENGTH] = {
     // ESC @, Initialize printer, p. 412
     0x1b, 0x40
+};
+
+#define ESC_SPEED_LENGTH 7
+unsigned char ESC_SPEED[ESC_SPEED_LENGTH] = {
+    // GS ( K <Function 50>, Select the print speed, p. 451
+    0x1d, 0x28, 0x4b, 0x02, 0x00, 0x32,
+    // m (01-09)
+    0x00
 };
 
 #define ESC_CUT_LENGTH 4
@@ -97,6 +105,7 @@ struct {
     unsigned int threshold;
     unsigned int gs8l_max_y;
     unsigned int printer_max_width;
+    unsigned int speed;
 } config = {
     .cut = 0,
     .photo = 0,
@@ -105,7 +114,8 @@ struct {
     .output = NULL,
     .threshold = 0x80,
     .gs8l_max_y = GS8L_MAX_Y,
-    .printer_max_width = PRINTER_MAX_WIDTH
+    .printer_max_width = PRINTER_MAX_WIDTH,
+    .speed = 0
 };
 
 // Gamma 2.2 lookup table
@@ -179,7 +189,7 @@ int main(int argc, char *argv[]) {
     // Utility Conventions: 12.1 Utility Argument Syntax
     opterr = 0;
     int optc = -1;
-    while ((optc = getopt(argc, argv, ":Vhca:rt:po:")) != -1) {
+    while ((optc = getopt(argc, argv, ":Vhca:rt:ps:o:")) != -1) {
         switch (optc) {
             case 'o':
                 config.output = optarg;
@@ -213,6 +223,14 @@ int main(int argc, char *argv[]) {
                 config.photo = 1;
                 break;
 
+            case 's':
+                config.speed = strtoul(optarg, NULL, 0);
+                if (config.speed < 1 || config.speed > 9) {
+                    config.speed = 0;
+                    fprintf(stderr, "Speed must be in the interval <1; 9>. Falling back to the default speed\n");
+                }
+                break;
+
             case 'V':
                 fprintf(stderr, "%s %s (%s)\n", "png2pos", PNG2POS_VERSION, PNG2POS_BUILTON);
                 fprintf(stderr, "%s %s\n", "LodePNG", LODEPNG_VERSION_STRING);
@@ -222,7 +240,7 @@ int main(int argc, char *argv[]) {
             case 'h':
                 fprintf(stderr,
                     "png2pos is a utility to convert PNG to ESC/POS\n"
-                    "Usage: png2pos [-V] [-h] [-c] [-a L|C|R] [-r] [-t THRESHOLD] [-p] [-o FILE] INPUT_FILES...\n"
+                    "Usage: png2pos [-V] [-h] [-c] [-a L|C|R] [-r] [-t THRESHOLD] [-p] [-s SPEED] [-o FILE] INPUT_FILES...\n"
                     "\n"
                     "  -V           display the version number and exit\n"
                     "  -h           display this short help and exit\n"
@@ -231,6 +249,7 @@ int main(int argc, char *argv[]) {
                     "  -r           rotate image upside down before it is printed\n"
                     "  -t THRESHOLD set the treshold value for conversion to B/W\n"
                     "  -p           switch to photo mode (post-process input files)\n"
+                    "  -s SPEED     set the print speed (1 = slow .. 9 = fast)\n"
                     "  -o FILE      output file\n"
                     "\n"
                     "With no FILE, or when FILE is -, write to standard output\n"
@@ -303,6 +322,12 @@ int main(int argc, char *argv[]) {
     print(fout, ESC_INIT, ESC_INIT_LENGTH);
     fflush(fout);
 
+    // print speed
+    if (config.speed != 0) {
+        ESC_SPEED[6] = config.speed;
+        print(fout, ESC_SPEED, ESC_SPEED_LENGTH);
+    }
+
     // for each input file
     while (optind != argc) {
         const char *input = argv[optind++];
@@ -335,7 +360,7 @@ int main(int argc, char *argv[]) {
             // A
             const unsigned int a = img_rgba[(i << 2) | 3];
             // RGBA → RGB
-            const unsigned int r = (255 - a) + a / 255 * img_rgba[i << 2];
+            const unsigned int r = (255 - a) + a / 255 * img_rgba[ i << 2     ];
             const unsigned int g = (255 - a) + a / 255 * img_rgba[(i << 2) | 1];
             const unsigned int b = (255 - a) + a / 255 * img_rgba[(i << 2) | 2];
             // RGB → R'G'B'

@@ -10,6 +10,7 @@ png2pos \- a utility to convert PNG images to ESC/POS format
 [\fB\-r\fR]
 [\fB\-t\fR \fITHRESHOLD\fR]
 [\fB\-p\fR]
+[\fB\-s\fR \fISPEED\fR]
 [\fB\-o\fR \fIFILE\fR]
 INPUT_FILES...
 .SH DESCRIPTION
@@ -20,7 +21,7 @@ It accepts any PNG file (B/W, greyscale, RGB, RGBA), applies Histogram Equalizat
 converts it to B/W bitmap wrapped by ESC/POS commands.
 png2pos prepends needed printer initialization binary sequences and adds paper cutoff command, if requested.
 .PP
-png2pos utilizes ESC@, GSV, GSL, GS8L and GS(L ESC/POS commands.
+png2pos utilizes ESC@, GSV, GS(K, GSL, GS8L and GS(L ESC/POS commands.
 .SH OPTIONS
 .TP
 .BR \-V
@@ -44,6 +45,10 @@ set the treshold value for conversion to B/W, falling back to the default value 
 .TP
 .BR \-p
 switch to photo mode (post-process input files)
+.TP
+.BR "\-s \fISPEED\fR"
+set the print speed, falling back to the default speed if not set;
+\fISPEED\fR must be in the interval <1; 9>, the lower value set, the slower print.
 .TP
 .BR "\-o \fIFILE\fR"
 output file or device to write to; with no \fIFILE\fR, or when \fIFILE\fR is -, write to standard output
