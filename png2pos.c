@@ -326,6 +326,7 @@ int main(int argc, char *argv[]) {
     if (config.speed != 0) {
         ESC_SPEED[6] = config.speed;
         print(fout, ESC_SPEED, ESC_SPEED_LENGTH);
+        fflush(fout);
     }
 
     // for each input file
