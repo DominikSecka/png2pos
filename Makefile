@@ -38,7 +38,7 @@ analyze : png2pos.c
 
 static : CFLAGS += -static
 static : LDFLAGS += -static
-static : all
+static : strip
 # This option will not work on Mac OS X unless all libraries (including libgcc.a)
 # have also been compiled with -static. Since neither a static version of libSystem.dylib
 # nor crt0.o are provided, this option is not useful to most people.

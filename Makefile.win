@@ -29,3 +29,6 @@ $(EXEC) : $(OBJS)
 
 %.res : %.rc
 	windres -J rc -O coff -o $@ $<
+
+sign :
+	signtool sign /t http://timestamp.verisign.com/scripts/timstamp.dll /f petr.kutalek.codesign.pfx /d png2pos.exe png2pos.exe
