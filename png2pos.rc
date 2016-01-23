@@ -18,7 +18,7 @@ FILESUBTYPE 0x0L
 			VALUE "OriginalFilename", "png2pos.exe"
 			VALUE "FileVersion", "1.6.13"
 			VALUE "InternalName", "png2pos"
-			VALUE "FileDescription", "a utility to converter PNG images to ESC/POS"
+			VALUE "FileDescription", "a utility to convert PNG images to ESC/POS"
 			VALUE "CompanyName", "Petr Kutalek"
 			VALUE "LegalCopyright", "\251 Petr Kutalek, 2012 - 2016"
 			VALUE "Comments", "https://github.com/petrkutalek/png2pos"
