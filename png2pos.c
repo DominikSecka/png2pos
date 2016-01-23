@@ -260,7 +260,7 @@ int main(int argc, char *argv[]) {
                     "\n"
                     "Please read the manual page (man png2pos)\n"
                     "Report bugs at https://github.com/petrkutalek/png2pos/issues\n"
-                    "(c) Petr Kutalek <petr@kutalek.cz>, 2012 - 2015, Licensed under the MIT license\n"
+                    "(c) Petr Kutalek <petr@kutalek.cz>, 2012 - 2016, Licensed under the MIT license\n"
                 );
                 ret = EXIT_SUCCESS;
                 goto fail;
