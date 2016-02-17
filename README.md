@@ -50,10 +50,8 @@ There is also an alternative project called [png2escpos](https://github.com/twg/
 
 You have to build binary file yourself. Clone the source code:
 
-    $ git clone https://github.com/petrkutalek/png2pos.git ↵
+    $ git clone --recursive https://github.com/petrkutalek/png2pos.git ↵
     $ cd png2pos ↵
-    $ git submodule init ↵
-    $ git submodule update ↵
 
 To build and install binary just type:
 
