@@ -5,7 +5,7 @@
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.13";
+const char *PNG2POS_VERSION = "1.6.14";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
@@ -22,67 +22,6 @@ void lodepng_free(void *ptr) {
     free(ptr);
 }
 #endif
-
-// ESC sequences
-#define ESC_INIT_LENGTH 2
-const unsigned char ESC_INIT[ESC_INIT_LENGTH] = {
-    // ESC @, Initialize printer, p. 412
-    0x1b, 0x40
-};
-
-#define ESC_SPEED_LENGTH 7
-unsigned char ESC_SPEED[ESC_SPEED_LENGTH] = {
-    // GS ( K <Function 50>, Select the print speed, p. 451
-    0x1d, 0x28, 0x4b, 0x02, 0x00, 0x32,
-    // m (01-09)
-    0x00
-};
-
-#define ESC_CUT_LENGTH 4
-const unsigned char ESC_CUT[ESC_CUT_LENGTH] = {
-    // GS V, Sub-Function B, p. 373
-    0x1d, 0x56, 0x41,
-    // Feeds paper to (cutting position + n × vertical motion unit)
-    // and executes a full cut (cuts the paper completely)
-    // The vertical motion unit is specified by GS P.
-    0x40
-};
-
-#define ESC_OFFSET_LENGTH 4
-unsigned char ESC_OFFSET[ESC_OFFSET_LENGTH] = {
-    // GS L, Set left margin, p. 169
-    0x1d, 0x4c, 
-    // nl, nh
-    0x00, 0x00
-};
-
-#define ESC_STORE_LENGTH 17
-unsigned char ESC_STORE[ESC_STORE_LENGTH] = {
-    // GS 8 L, Store the graphics data in the print buffer (raster format), p. 252
-    0x1d, 0x38, 0x4c,
-    // p1 p2 p3 p4
-    0x0b, 0x00, 0x00, 0x00, 
-    // Function 112
-    0x30, 0x70, 0x30,
-    // bx by, zoom
-    0x01, 0x01, 
-    // c, single-color printing model
-    0x31, 
-    // xl, xh, number of dots in the horizontal direction
-    0x00, 0x00, 
-    // yl, yh, number of dots in the vertical direction
-    0x00, 0x00
-};
-
-#define ESC_FLUSH_LENGTH 7
-const unsigned char ESC_FLUSH[ESC_FLUSH_LENGTH] = {
-    // GS ( L, Print the graphics data in the print buffer, p. 241
-    // Moves print position to the left side of the print area after 
-    // printing of graphics data is completed
-    0x1d, 0x28, 0x4c, 0x02, 0x00, 0x30,
-    // Fn 50
-    0x32 
-};
 
 // number of dots/lines in vertical direction in one F112 command
 // set to <= 128u for Epson TM-J2000/J2100
@@ -161,7 +100,7 @@ const unsigned char LIGHTNESS[256] = {
 FILE *fout = NULL;
 
 // keeps value in the <min; max> interval
-inline int rebound(const int value, const int min, const int max) {
+int rebound(const int value, const int min, const int max) {
     int a = value;
     if (a > max) {
         a = max;
@@ -172,7 +111,7 @@ inline int rebound(const int value, const int min, const int max) {
     return a;
 }
 
-void print(FILE *stream, const unsigned char *buffer, const size_t length) {
+void fputa(const unsigned char *buffer, const size_t length, FILE *stream) {
     for (unsigned int i = 0; i != length; ++i) {
         fputc(buffer[i], stream);
     }
@@ -318,14 +257,23 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Could not set new buffer policy on output stream\n");
     }
 
+    const unsigned char ESC_INIT[2] = {
+        // ESC @, Initialize printer, p. 412
+        0x1b, 0x40
+    };
     // init printer
-    print(fout, ESC_INIT, ESC_INIT_LENGTH);
+    fputa(ESC_INIT, 2, fout);
     fflush(fout);
 
     // print speed
     if (config.speed != 0) {
-        ESC_SPEED[6] = config.speed;
-        print(fout, ESC_SPEED, ESC_SPEED_LENGTH);
+        const unsigned char ESC_SPEED[7] = {
+            // GS ( K <Function 50>, Select the print speed, p. 451
+            0x1d, 0x28, 0x4b, 0x02, 0x00, 0x32,
+            // m (01-09)
+            config.speed
+        };
+        fputa(ESC_SPEED, 2, fout);
         fflush(fout);
     }
 
@@ -419,13 +367,12 @@ int main(int argc, char *argv[]) {
             // become washed out.
 
             // Atkinson Dithering Algorithm
-            #define DITHERING_MATRIX_SIZE 6
             const struct {
                 int dx;
                 int dy;
                 // for simplicity of computation, all standard dithering formulas
                 // push the error forward, never backward 
-            } dithering_matrix[DITHERING_MATRIX_SIZE] = {
+            } dithering_matrix[6] = {
                 { .dx =  1, .dy = 0 },
                 { .dx =  2, .dy = 0 },
                 { .dx = -1, .dy = 1 },
@@ -435,20 +382,20 @@ int main(int argc, char *argv[]) {
             };
             for (unsigned int i = 0; i != img_grey_size; ++i) {
                 const unsigned int o = img_grey[i];
-                const unsigned int n = o <= config.threshold ? 0x00 : 0xff;
+                const unsigned int n = o <= config.threshold ? 0 : 0xff;
                 // the residual quantization error 
                 const int d = (int)(o - n) / 8;
                 img_grey[i] = n;
                 const unsigned int x = i % img_w;
                 const unsigned int y = i / img_w;
 
-                for (unsigned int j = 0; j != DITHERING_MATRIX_SIZE; ++j) {
+                for (unsigned int j = 0; j != 6; ++j) {
                     const int x0 = x + dithering_matrix[j].dx;
                     const int y0 = y + dithering_matrix[j].dy;
                     if (x0 >= img_w || x0 < 0 || y0 >= img_h) {
                         continue;
                     }
-                    img_grey[x0 + img_w * y0] = rebound(img_grey[x0 + img_w * y0] + d, 0x00, 0xff);
+                    img_grey[x0 + img_w * y0] = rebound(img_grey[x0 + img_w * y0] + d, 0, 0xff);
                 }
             }
         }
@@ -511,22 +458,45 @@ int main(int argc, char *argv[]) {
             }
 
             if (offset) {
-                ESC_OFFSET[2] = offset & 0xff;
-                ESC_OFFSET[3] = offset >> 8 & 0xff;
-                print(fout, ESC_OFFSET, ESC_OFFSET_LENGTH);
+                const unsigned char ESC_OFFSET[4] = {
+                    // GS L, Set left margin, p. 169
+                    0x1d, 0x4c, 
+                    // nl, nh
+                    offset & 0xff, offset >> 8 & 0xff
+                };
+                fputa(ESC_OFFSET, 4, fout);
             }
 
             const unsigned int f112_p = 10 + k * (canvas_w >> 3);
-            ESC_STORE[ 3] = f112_p & 0xff;
-            ESC_STORE[ 4] = f112_p >> 8 & 0xff;
-            ESC_STORE[13] = canvas_w & 0xff;
-            ESC_STORE[14] = canvas_w >> 8 & 0xff;
-            ESC_STORE[15] = k & 0xff;
-            ESC_STORE[16] = k >> 8 & 0xff;
+            const unsigned char ESC_STORE[17] = {
+                // GS 8 L, Store the graphics data in the print buffer (raster format), p. 252
+                0x1d, 0x38, 0x4c,
+                // p1 p2 p3 p4
+                f112_p & 0xff, f112_p >> 8 & 0xff, 0x00, 0x00, 
+                // Function 112
+                0x30, 0x70, 0x30,
+                // bx by, zoom
+                0x01, 0x01, 
+                // c, single-color printing model
+                0x31, 
+                // xl, xh, number of dots in the horizontal direction
+                canvas_w & 0xff, canvas_w >> 8 & 0xff, 
+                // yl, yh, number of dots in the vertical direction
+                k & 0xff, k >> 8 & 0xff
+            };
+            fputa(ESC_STORE, 17, fout);
 
-            print(fout, ESC_STORE, ESC_STORE_LENGTH);
-            print(fout, &img_bw[l * (canvas_w >> 3)], k * (canvas_w >> 3));
-            print(fout, ESC_FLUSH, ESC_FLUSH_LENGTH);
+            fputa(&img_bw[l * (canvas_w >> 3)], k * (canvas_w >> 3), fout);
+
+            const unsigned char ESC_FLUSH[7] = {
+                // GS ( L, Print the graphics data in the print buffer, p. 241
+                // Moves print position to the left side of the print area after 
+                // printing of graphics data is completed
+                0x1d, 0x28, 0x4c, 0x02, 0x00, 0x30,
+                // Fn 50
+                0x32 
+            };
+            fputa(ESC_FLUSH, 7, fout);
             fflush(fout);
         }
 
@@ -535,7 +505,15 @@ int main(int argc, char *argv[]) {
 
     if (config.cut) {
         // cut the paper
-        print(fout, ESC_CUT, ESC_CUT_LENGTH);
+        const unsigned char ESC_CUT[4] = {
+            // GS V, Sub-Function B, p. 373
+            0x1d, 0x56, 0x41,
+            // Feeds paper to (cutting position + n × vertical motion unit)
+            // and executes a full cut (cuts the paper completely)
+            // The vertical motion unit is specified by GS P.
+            0x40
+        };
+        fputa(ESC_CUT, 4, fout);
         fflush(fout);
     }
 
