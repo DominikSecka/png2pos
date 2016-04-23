@@ -5,7 +5,7 @@
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.14";
+const char *PNG2POS_VERSION = "1.6.15";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
@@ -72,7 +72,7 @@ const unsigned char GAMMA_22[256] = {
     0x5b, 0x5c, 0x5d, 0x5f, 0x60, 0x61, 0x63, 0x64, 0x65, 0x67, 0x68, 0x69, 0x6b, 0x6c, 0x6d, 0x6f,
     0x70, 0x72, 0x73, 0x75, 0x76, 0x77, 0x79, 0x7a, 0x7c, 0x7d, 0x7f, 0x80, 0x82, 0x83, 0x85, 0x87,
     0x88, 0x8a, 0x8b, 0x8d, 0x8e, 0x90, 0x92, 0x93, 0x95, 0x97, 0x98, 0x9a, 0x9c, 0x9d, 0x9f, 0xa1,
-    0xa2, 0xa4, 0xa6, 0xa8, 0xa9, 0xab, 0xad, 0xaf, 0xb0, 0xb2, 0xb4, 0xb6, 0xb8, 0xba, 0xbb, 0xbd, 
+    0xa2, 0xa4, 0xa6, 0xa8, 0xa9, 0xab, 0xad, 0xaf, 0xb0, 0xb2, 0xb4, 0xb6, 0xb8, 0xba, 0xbb, 0xbd,
     0xbf, 0xc1, 0xc3, 0xc5, 0xc7, 0xc9, 0xcb, 0xcd, 0xcf, 0xd1, 0xd3, 0xd5, 0xd7, 0xd9, 0xdb, 0xdd,
     0xdf, 0xe1, 0xe3, 0xe5, 0xe7, 0xe9, 0xeb, 0xed, 0xef, 0xf1, 0xf4, 0xf6, 0xf8, 0xfa, 0xfc, 0xff
 };
@@ -114,6 +114,23 @@ int rebound(const int value, const int min, const int max) {
 void fputa(const unsigned char *buffer, const size_t length, FILE *stream) {
     for (unsigned int i = 0; i != length; ++i) {
         fputc(buffer[i], stream);
+    }
+}
+
+// for debug purposes
+void pbm_write(const char *filename,
+        const unsigned int w, const unsigned int h,
+        const unsigned char *buffer, const size_t buffer_size) {
+
+    FILE *f = fopen(filename, "w");
+    if (f) {
+        fprintf(f, "P4 %d %d\n", w, h);
+        for (unsigned int i = 0; i != buffer_size; ++i) {
+            fputc(buffer[i], f);
+        }
+        fputc('\n', f);
+        fflush(f);
+        fclose(f), f = NULL;
     }
 }
 
@@ -354,7 +371,6 @@ int main(int argc, char *argv[]) {
                 img_grey[i] = 255 * histogram[img_grey[i]] / img_grey_size;
             }
             config.threshold = 255 * histogram[config.threshold] / img_grey_size;
-            fprintf(stderr, "Threshold shift, new value = %d\n", config.threshold);
 
             // http://www.tannerhelland.com/4660/dithering-eleven-algorithms-source-code/
             // One of the best dithering algorithms from mid-1980's was developed by Bill Atkinson,
@@ -371,7 +387,7 @@ int main(int argc, char *argv[]) {
                 int dx;
                 int dy;
                 // for simplicity of computation, all standard dithering formulas
-                // push the error forward, never backward 
+                // push the error forward, never backward
             } dithering_matrix[6] = {
                 { .dx =  1, .dy = 0 },
                 { .dx =  2, .dy = 0 },
@@ -383,7 +399,7 @@ int main(int argc, char *argv[]) {
             for (unsigned int i = 0; i != img_grey_size; ++i) {
                 const unsigned int o = img_grey[i];
                 const unsigned int n = o <= config.threshold ? 0 : 0xff;
-                // the residual quantization error 
+                // the residual quantization error
                 const int d = (int)(o - n) / 8;
                 img_grey[i] = n;
                 const unsigned int x = i % img_w;
@@ -427,6 +443,8 @@ int main(int argc, char *argv[]) {
 
         free(img_grey), img_grey = NULL;
 
+        //pbm_write("debug.pbm", canvas_w, img_h, img_bw, img_bw_size);
+
         // left offset
         int offset = 0;
         switch (config.align) {
@@ -460,7 +478,7 @@ int main(int argc, char *argv[]) {
             if (offset) {
                 const unsigned char ESC_OFFSET[4] = {
                     // GS L, Set left margin, p. 169
-                    0x1d, 0x4c, 
+                    0x1d, 0x4c,
                     // nl, nh
                     offset & 0xff, offset >> 8 & 0xff
                 };
@@ -472,15 +490,15 @@ int main(int argc, char *argv[]) {
                 // GS 8 L, Store the graphics data in the print buffer (raster format), p. 252
                 0x1d, 0x38, 0x4c,
                 // p1 p2 p3 p4
-                f112_p & 0xff, f112_p >> 8 & 0xff, 0x00, 0x00, 
+                f112_p & 0xff, f112_p >> 8 & 0xff, 0x00, 0x00,
                 // Function 112
                 0x30, 0x70, 0x30,
                 // bx by, zoom
-                0x01, 0x01, 
+                0x01, 0x01,
                 // c, single-color printing model
-                0x31, 
+                0x31,
                 // xl, xh, number of dots in the horizontal direction
-                canvas_w & 0xff, canvas_w >> 8 & 0xff, 
+                canvas_w & 0xff, canvas_w >> 8 & 0xff,
                 // yl, yh, number of dots in the vertical direction
                 k & 0xff, k >> 8 & 0xff
             };
@@ -490,11 +508,11 @@ int main(int argc, char *argv[]) {
 
             const unsigned char ESC_FLUSH[7] = {
                 // GS ( L, Print the graphics data in the print buffer, p. 241
-                // Moves print position to the left side of the print area after 
+                // Moves print position to the left side of the print area after
                 // printing of graphics data is completed
                 0x1d, 0x28, 0x4c, 0x02, 0x00, 0x30,
                 // Fn 50
-                0x32 
+                0x32
             };
             fputa(ESC_FLUSH, 7, fout);
             fflush(fout);
