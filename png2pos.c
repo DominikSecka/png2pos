@@ -99,32 +99,20 @@ const unsigned char LIGHTNESS[256] = {
 
 FILE *fout = NULL;
 
-// keeps value in the <min; max> interval
-int rebound(const int value, const int min, const int max) {
-    int a = value;
-    if (a > max) {
-        a = max;
-    }
-    else if (a < min) {
-        a = min;
-    }
-    return a;
-}
-
-void fputa(const unsigned char *buffer, const size_t length, FILE *stream) {
+void fputa(const unsigned char *restrict buffer, const size_t length, FILE *stream) {
     for (unsigned int i = 0; i != length; ++i) {
         fputc(buffer[i], stream);
     }
 }
 
-// for debug purposes
+#ifdef DEBUG
 void pbm_write(const char *filename,
         const unsigned int w, const unsigned int h,
-        const unsigned char *buffer, const size_t buffer_size) {
+        const unsigned char *restrict buffer, const size_t buffer_size) {
 
     FILE *f = fopen(filename, "w");
     if (f) {
-        fprintf(f, "P4 %d %d\n", w, h);
+        fprintf(f, "P4 %u %u\n", w, h);
         for (unsigned int i = 0; i != buffer_size; ++i) {
             fputc(buffer[i], f);
         }
@@ -133,6 +121,7 @@ void pbm_write(const char *filename,
         fclose(f), f = NULL;
     }
 }
+#endif
 
 int main(int argc, char *argv[]) {
     int ret = EXIT_FAILURE;
@@ -190,6 +179,9 @@ int main(int argc, char *argv[]) {
             case 'V':
                 fprintf(stderr, "%s %s (%s)\n", "png2pos", PNG2POS_VERSION, PNG2POS_BUILTON);
                 fprintf(stderr, "%s %s\n", "LodePNG", LODEPNG_VERSION_STRING);
+#ifdef DEBUG
+                fprintf(stderr, "%s\n", "DEBUG VERSION");
+#endif
                 ret = EXIT_SUCCESS;
                 goto fail;
 
@@ -279,7 +271,7 @@ int main(int argc, char *argv[]) {
         0x1b, 0x40
     };
     // init printer
-    fputa(ESC_INIT, 2, fout);
+    fputa(ESC_INIT, sizeof(ESC_INIT), fout);
     fflush(fout);
 
     // print speed
@@ -290,7 +282,7 @@ int main(int argc, char *argv[]) {
             // m (01-09)
             config.speed
         };
-        fputa(ESC_SPEED, 2, fout);
+        fputa(ESC_SPEED, sizeof(ESC_SPEED), fout);
         fflush(fout);
     }
 
@@ -370,7 +362,7 @@ int main(int argc, char *argv[]) {
             for (unsigned int i = 0; i != img_grey_size; ++i) {
                 img_grey[i] = 255 * histogram[img_grey[i]] / img_grey_size;
             }
-            config.threshold = 255 * histogram[config.threshold] / img_grey_size;
+            //config.threshold = 255 * histogram[config.threshold] / img_grey_size;
 
             // http://www.tannerhelland.com/4660/dithering-eleven-algorithms-source-code/
             // One of the best dithering algorithms from mid-1980's was developed by Bill Atkinson,
@@ -400,18 +392,28 @@ int main(int argc, char *argv[]) {
                 const unsigned int o = img_grey[i];
                 const unsigned int n = o <= config.threshold ? 0 : 0xff;
                 // the residual quantization error
+                // warning! have to overcast to signed int before div!
                 const int d = (int)(o - n) / 8;
-                img_grey[i] = n;
-                const unsigned int x = i % img_w;
-                const unsigned int y = i / img_w;
 
+                const int x = i % img_w;
+                const int y = i / img_w;
+
+                img_grey[i] = n;
                 for (unsigned int j = 0; j != 6; ++j) {
                     const int x0 = x + dithering_matrix[j].dx;
                     const int y0 = y + dithering_matrix[j].dy;
-                    if (x0 >= img_w || x0 < 0 || y0 >= img_h) {
+                    if (x0 > (int)img_w - 1 || x0 < 0 || y0 > (int)img_h - 1 || y0 < 0) {
                         continue;
                     }
-                    img_grey[x0 + img_w * y0] = rebound(img_grey[x0 + img_w * y0] + d, 0, 0xff);
+                    // keep a value in the <min; max> interval
+                    int a = img_grey[x0 + img_w * y0] + d;
+                    if (a > 0xff) {
+                        a = 0xff;
+                    }
+                    else if (a < 0) {
+                        a = 0;
+                    }
+                    img_grey[x0 + img_w * y0] = a;
                 }
             }
         }
@@ -433,7 +435,7 @@ int main(int argc, char *argv[]) {
 
         // compress bytes into bitmap
         for (unsigned int i = 0; i != img_grey_size; ++i) {
-            const unsigned int idx = !config.rotate ? i : (img_grey_size - 1) - i;
+            const unsigned int idx = config.rotate ? img_grey_size - 1 - i : i;
             if (img_grey[idx] <= config.threshold) {
                 const unsigned int x = i % img_w;
                 const unsigned int y = i / img_w;
@@ -443,7 +445,9 @@ int main(int argc, char *argv[]) {
 
         free(img_grey), img_grey = NULL;
 
-        //pbm_write("debug.pbm", canvas_w, img_h, img_bw, img_bw_size);
+#ifdef DEBUG
+        pbm_write("debug.pbm", canvas_w, img_h, img_bw, img_bw_size);
+#endif
 
         // left offset
         int offset = 0;
@@ -482,7 +486,7 @@ int main(int argc, char *argv[]) {
                     // nl, nh
                     offset & 0xff, offset >> 8 & 0xff
                 };
-                fputa(ESC_OFFSET, 4, fout);
+                fputa(ESC_OFFSET, sizeof(ESC_OFFSET), fout);
             }
 
             const unsigned int f112_p = 10 + k * (canvas_w >> 3);
@@ -502,7 +506,7 @@ int main(int argc, char *argv[]) {
                 // yl, yh, number of dots in the vertical direction
                 k & 0xff, k >> 8 & 0xff
             };
-            fputa(ESC_STORE, 17, fout);
+            fputa(ESC_STORE, sizeof(ESC_STORE), fout);
 
             fputa(&img_bw[l * (canvas_w >> 3)], k * (canvas_w >> 3), fout);
 
@@ -514,7 +518,7 @@ int main(int argc, char *argv[]) {
                 // Fn 50
                 0x32
             };
-            fputa(ESC_FLUSH, 7, fout);
+            fputa(ESC_FLUSH, sizeof(ESC_FLUSH), fout);
             fflush(fout);
         }
 
@@ -531,7 +535,7 @@ int main(int argc, char *argv[]) {
             // The vertical motion unit is specified by GS P.
             0x40
         };
-        fputa(ESC_CUT, 4, fout);
+        fputa(ESC_CUT, sizeof(ESC_CUT), fout);
         fflush(fout);
     }
 

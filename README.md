@@ -21,7 +21,7 @@ png2pos is:
 
 ## Printing on Windows
 
-In file [print.cmd](./print.cmd) replace PRINTER with your printer's device. Now you can drag & drop your PNG file into this shortcut to directly print it on your thermal printer. 
+In file [print.cmd](./print.cmd) replace PRINTER with your printer's device. Now you can drag & drop your PNG file into this shortcut to directly print it on your thermal printer.
 For further details, please check [this blog post](http://mike.bitrevision.com/blog/2015-04-getting-a-usb-receipt-printer-working-on-windows).
 
 ## How does it work?
@@ -38,7 +38,7 @@ png2pos converts RGBA images into greyscale version via algorithm compliant with
 
 ## Pricing and Support
 
-png2pos is free MIT-licensed software provided as is. If you like png2pos and use it, please let me know, it motivates me in further development. 
+png2pos is free MIT-licensed software provided as is. If you like png2pos and use it, please let me know, it motivates me in further development.
 
 **Unfortunately I am unable to provide you with free support. Please, do not ever ask me to assist you with source code modifications or to make a special build for you etc., if you use png2pos for your business (especially if you have not donated to its development). It is your job you are paid for.**
 

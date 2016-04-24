@@ -1,5 +1,5 @@
 CC ?= gcc
-CFLAGS += -std=c99 -O2 -Wall -pedantic \
+CFLAGS += -std=c99 -W -Wall -pedantic -O3 -march=native -ftree-vectorize \
 	-D_POSIX_C_SOURCE=200809L \
 	-D_FILE_OFFSET_BITS=64 \
 	-DLODEPNG_NO_COMPILE_ANCILLARY_CHUNKS \
@@ -19,22 +19,20 @@ man : $(EXEC).1.gz
 strip : $(EXEC)
 	-strip $<
 
-.PHONY : clean
+.PHONY : clean analyze install uninstall indent
+
 clean :
 	-rm -f $(OBJS) $(EXEC)
-	-rm *.pos *.gz
+	-rm *.pos *.gz debug.* *.backup
 
 $(EXEC) : $(OBJS)
-	$(CC) $(OBJS) $(LDFLAGS) -o $@ 
+	$(CC) $(OBJS) $(LDFLAGS) -o $@
 
 %.o : %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.1.gz : %.1
 	gzip -c -9 $< > $@
-
-analyze : png2pos.c
-	clang --analyze -Xanalyzer -analyzer-output=text $(CFLAGS) $<
 
 static : CFLAGS += -static
 static : LDFLAGS += -static
@@ -62,3 +60,15 @@ install : strip man
 uninstall :
 	rm $(DESTDIR)$(PREFIX)/bin/$(EXEC)
 	rm $(DESTDIR)$(PREFIX)/share/man/man1/$(EXEC).1.gz
+
+indent : png2pos.c png2pos.1 README.md
+	sed -i .backup 's/[[:blank:]]*$$//' $^
+
+analyze : CFLAGS += -DDEBUG
+analyze : lodepng.c png2pos.c
+	clang --analyze -Xanalyzer -analyzer-output=text $(CFLAGS) $^
+
+debug : CFLAGS += -DDEBUG
+debug : all
+	ls -l png2pos
+	./png2pos -V
