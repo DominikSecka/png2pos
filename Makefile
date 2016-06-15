@@ -17,7 +17,7 @@ all : $(EXEC)
 man : $(EXEC).1.gz
 
 strip : $(EXEC)
-	-strip $<
+	-strip --strip-unneeded $<
 
 .PHONY : clean analyze install uninstall indent
 
@@ -26,13 +26,16 @@ clean :
 	-rm *.pos *.gz debug.* *.backup
 
 $(EXEC) : $(OBJS)
-	$(CC) $(OBJS) $(LDFLAGS) -o $@
+	@printf "%-16s%s\n" LD $@
+	@$(CC) $(OBJS) $(LDFLAGS) -o $@
 
 %.o : %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
+	@printf "%-16s%s\n" CC $@
+	@$(CC) -c $(CFLAGS) -o $@ $<
 
 %.1.gz : %.1
-	gzip -c -9 $< > $@
+	@printf "%-16s%s\n" GZ $@
+	@gzip -c -9 $< > $@
 
 static : CFLAGS += -static
 static : LDFLAGS += -static
@@ -47,7 +50,7 @@ rpi : strip
 profiled :
 	make CFLAGS="$(CFLAGS) -fprofile-generate" $(EXEC)
 	find . -type f -exec ./$(EXEC) -o /dev/null -c -r -a c {} \;
-	-rm *.pos
+	-rm -f *.pos
 	make clean
 	make CFLAGS="$(CFLAGS) -fprofile-use" strip
 	-rm -f $(OBJS) *.gcda *.gcno *.dyn pgopti.dpi pgopti.dpi.lock
@@ -58,8 +61,8 @@ install : strip man
 	install -m644 $(EXEC).1.gz $(DESTDIR)$(PREFIX)/share/man/man1
 
 uninstall :
-	rm $(DESTDIR)$(PREFIX)/bin/$(EXEC)
-	rm $(DESTDIR)$(PREFIX)/share/man/man1/$(EXEC).1.gz
+	rm -f $(DESTDIR)$(PREFIX)/bin/$(EXEC)
+	rm -f $(DESTDIR)$(PREFIX)/share/man/man1/$(EXEC).1.gz
 
 indent : png2pos.c png2pos.1 README.md
 	sed -i .backup 's/[[:blank:]]*$$//' $^
@@ -72,3 +75,6 @@ debug : CFLAGS += -DDEBUG
 debug : all
 	ls -l png2pos
 	./png2pos -V
+
+update :
+	git submodule update --recursive --merge
