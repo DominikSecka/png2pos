@@ -12,10 +12,6 @@ codes and escape sequences) used by POS thermal printers.
 #include <unistd.h>
 #include <getopt.h>
 #include "lodepng.h"
-#ifdef SECCOMP
-#include <sys/prctl.h>
-#include <seccomp.h>
-#endif
 
 const char *PNG2POS_VERSION = "1.6.16";
 const char *PNG2POS_BUILTON = __DATE__;
@@ -141,48 +137,6 @@ int main(int argc, char *argv[]) {
     unsigned char *img_rgba = NULL;
     unsigned char *img_grey = NULL;
     unsigned char *img_bw = NULL;
-
-#ifdef SECCOMP
-    // support for seccomp is experimental!
-
-    // ensure non of our children will ever be granted more priv
-    if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0) {
-        fprintf(stderr, "fatal error, prctl(PR_SET_NO_NEW_PRIVS) failed\n");
-        goto fail;
-    }
-
-
-    // ensure escape via ptrace is impossible
-    if (prctl(PR_SET_DUMPABLE, 0, 0, 0, 0) < 0) {
-        fprintf(stderr, "fatal error, prctl(PR_SET_DUMPABLE) failed\n");
-        goto fail;
-    }
-
-    // init, set, compile and load custom BPF
-    scmp_filter_ctx scmp_ctx = seccomp_init(SCMP_ACT_KILL);
-    //seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigreturn), 0);
-    //seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit), 0);
-    //seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 0);
-    //seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(access), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(arch_prctl), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(brk), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(close), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(execve), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstat), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(lseek), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(mmap), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(mprotect), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(mremap), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(munmap), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(open), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 0);
-    seccomp_rule_add(scmp_ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 0);
-
-    seccomp_load(scmp_ctx);
-#endif
 
     // http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html
     // Utility Conventions: 12.1 Utility Argument Syntax

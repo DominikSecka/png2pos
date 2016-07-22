@@ -47,10 +47,6 @@ static : all
 rpi : CFLAGS += -march=armv6j -mfpu=vfp -mfloat-abi=hard
 rpi : strip
 
-seccomp : CFLAGS += -DSECCOMP
-seccomp : LDFLAGS += -lseccomp
-seccomp : all
-
 profiled :
 	make CFLAGS="$(CFLAGS) -fprofile-generate" $(EXEC)
 	find . -type f -exec ./$(EXEC) -o /dev/null -c -r -a c {} \;
