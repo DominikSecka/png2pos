@@ -39,13 +39,17 @@ $(EXEC) : $(OBJS)
 
 static : CFLAGS += -static
 static : LDFLAGS += -static
-static : strip
+static : all
 # This option will not work on Mac OS X unless all libraries (including libgcc.a)
 # have also been compiled with -static. Since neither a static version of libSystem.dylib
 # nor crt0.o are provided, this option is not useful to most people.
 
 rpi : CFLAGS += -march=armv6j -mfpu=vfp -mfloat-abi=hard
 rpi : strip
+
+seccomp : CFLAGS += -DSECCOMP
+seccomp : LDFLAGS += -lseccomp
+seccomp : all
 
 profiled :
 	make CFLAGS="$(CFLAGS) -fprofile-generate" $(EXEC)

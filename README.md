@@ -70,17 +70,15 @@ Windows binary is build in MinGW by (MinGW must be included in PATH):
 
     C:\devel\png2pos> mingw32-make -f Makefile.win strip
 
-### Available make targets
+### seccomp
 
-target | make will build…
-:----- | :------
-(empty)  | png2pos
-clean | (removes intermediate products)
-strip | stripped version (suggested)
-profiled | profiled version (up to 3 % performance gain on repeat tasks)
-install | install png2pos into PREFIX (default /usr/local)
+png2pos has experimental support for seccomp BPF filters on Linux. If you have libseccomp-dev installed,
+you can enable seccomp support by compiling target `seccomp`:
 
-png2pos has no lib dependencies and is easy to build and run on Linux, Mac and Windows.
+    $ make seccomp ↵
+    $ make strip ↵
+
+Otherwise png2pos has no lib dependencies and is easy to build and run on Linux, Mac and Windows.
 
 ## Usage examples
 
