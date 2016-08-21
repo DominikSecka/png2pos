@@ -95,6 +95,10 @@ Produced B/W dithered version (Atkinson Dithering Algorithm, 1 bit per pixel)
 
 ![B/W](docs/lena_png2pos_3_bw.png)
 
+Final copy (photo)
+
+![real](docs/lena_png2pos_4_real.jpg)
+
 Histograms (raw and post-processed image)
 
 ![histograms](docs/lena_png2pos_histogram.png)
