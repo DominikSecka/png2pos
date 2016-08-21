@@ -22,7 +22,7 @@ png2pos is:
 ## Printing on Windows
 
 In file [print.cmd](./print.cmd) replace PRINTER with your printer's device. Now you can drag & drop your PNG file into this shortcut to directly print it on your thermal printer.
-For further details, please check [this blog post](http://mike.bitrevision.com/blog/2015-04-getting-a-usb-receipt-printer-working-on-windows).
+For further details, please check [this blog post](https://mike42.me/blog/2015-04-getting-a-usb-receipt-printer-working-on-windows).
 
 ## How does it work?
 
