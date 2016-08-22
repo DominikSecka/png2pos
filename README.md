@@ -1,7 +1,8 @@
 # png2pos
+
 [![Build Status](https://travis-ci.org/petrkutalek/png2pos.svg?branch=master)](https://travis-ci.org/petrkutalek/png2pos)
 
-**NOTE: png2pos fulfills its purpose and does it well. I do not intend to develop it any more. It is licensed under MIT: anyone can use it for free, anyone has the right to modify it unless the name "png2pos" is being used for further releases.**
+**NOTE: png2pos fulfills its purpose and does it well. I probably do not intend to develop it any more. It is licensed under MIT: anyone can use it for free, anyone has the right to modify it unless the name "png2pos" is being used for further releases.**
 
 png2pos is a utility to convert PNG images to ESC/POS format (printer control codes and escape sequences) used by POS thermal printers. Output file can be just sent to printer.
 
@@ -68,37 +69,39 @@ On Linux you can also build static binary (e.g. also based on [musl](http://www.
 
 Windows binary is build in MinGW by (MinGW must be included in PATH):
 
-    C:\devel\png2pos> mingw32-make -f Makefile.win strip
+    C:\devel\png2pos> mingw32-make -f Makefile.win strip ↵
 
 png2pos has no lib dependencies and is easy to build and run on Linux, Mac and Windows.
 
 ## Usage examples
 
-    $ png2pos -c -r /tmp/*.png > /dev/usb/lp0 ↵
+    $ png2pos -c -p -o /dev/usb/lp0 /tmp/image.png ↵
 
-## Examples
+or
+
+    $ png2pos -c -p /tmp/image.png > /dev/usb/lp0 ↵
+
+Please see man page:
+
+    $ man png2pos ↵
+
+## Example
 
 ### Lena
-Original (3 bytes per pixel)
 
-![original](docs/lena_png2pos_0_original.png)
+Below you can see each step (with its intermediate product) image passes through during the image processing:
 
-Greyscale version (1 byte per pixel)
+* Top: Original (24 bits per pixel)
+* Left: Greyscale version (8 bits per pixel)
+* Right: Post-processed version (Histogram Equalization Algorithm, 8 bits per pixel)
+* Bottom: Produced B/W dithered version (Atkinson Dithering Algorithm, 1 bit per pixel)
 
-![grey](docs/lena_png2pos_1_grey.png)
+![lena](docs/lena.png)
 
-Post-processed version (Histogram Equalization Algorithm, 1 byte per pixel)
+Final copy
 
-![post-processed](docs/lena_png2pos_2_pp.png)
+![real](docs/lena.jpg)
 
-Produced B/W dithered version (Atkinson Dithering Algorithm, 1 bit per pixel)
+Histograms (raw and post-processed images)
 
-![B/W](docs/lena_png2pos_3_bw.png)
-
-Final copy (photo)
-
-![real](docs/lena_png2pos_4_real.jpg)
-
-Histograms (raw and post-processed image)
-
-![histograms](docs/lena_png2pos_histogram.png)
+![histograms](docs/histogram.png)
