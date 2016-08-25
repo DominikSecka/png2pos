@@ -13,7 +13,7 @@ codes and escape sequences) used by POS thermal printers.
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.16";
+const char *PNG2POS_VERSION = "1.6.17";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
@@ -372,47 +372,50 @@ int main(int argc, char *argv[]) {
             }
             //config.threshold = 255 * histogram[config.threshold] / img_grey_size;
 
+            // Jarvis, Judice, and Ninke Dithering
             // http://www.tannerhelland.com/4660/dithering-eleven-algorithms-source-code/
-            // One of the best dithering algorithms from mid-1980's was developed by Bill Atkinson,
-            // a Apple employee who worked on everything from MacPaint (which he wrote from scratch
-            // for the original Macintosh) to HyperCard and QuickDraw.
-            // Atkinson’s formula is a bit different from others, because it only propagates
-            // a fraction of the error instead of the full amount. This technique is sometimes offered
-            // by modern graphics applications as a “reduced color bleed” option. By only propagating part
-            // of the error, speckling is reduced, but contiguous dark or bright sections of an image may
-            // become washed out.
-
-            // Atkinson Dithering Algorithm
+            // In the same year that Floyd and Steinberg published their famous dithering algorithm,
+            // a lesser-known – but much more powerful – algorithm was also published.
+            // With this algorithm, the error is distributed to three times as many pixels as
+            // in Floyd-Steinberg, leading to much smoother – and more subtle – output.
             const struct {
                 int dx;
                 int dy;
+                int v;
                 // for simplicity of computation, all standard dithering formulas
                 // push the error forward, never backward
-            } dithering_matrix[6] = {
-                { .dx =  1, .dy = 0 },
-                { .dx =  2, .dy = 0 },
-                { .dx = -1, .dy = 1 },
-                { .dx =  0, .dy = 1 },
-                { .dx =  1, .dy = 1 },
-                { .dx =  0, .dy = 2 }
+            } dithering_matrix[12] = {
+                { .dx =  1, .dy = 0, .v = 7 },
+                { .dx =  2, .dy = 0, .v = 5 },
+                { .dx = -2, .dy = 1, .v = 3 },
+                { .dx = -1, .dy = 1, .v = 5 },
+                { .dx =  0, .dy = 1, .v = 7 },
+                { .dx =  1, .dy = 1, .v = 5 },
+                { .dx =  2, .dy = 1, .v = 3 },
+                { .dx = -2, .dy = 2, .v = 1 },
+                { .dx = -1, .dy = 2, .v = 3 },
+                { .dx =  0, .dy = 2, .v = 5 },
+                { .dx =  1, .dy = 2, .v = 3 },
+                { .dx =  2, .dy = 2, .v = 1 }
             };
+
             for (unsigned int i = 0; i != img_grey_size; ++i) {
                 const unsigned int o = img_grey[i];
                 const unsigned int n = o <= config.threshold ? 0 : 0xff;
-                // the residual quantization error
-                // warning! have to overcast to signed int before div!
-                const int d = (int)(o - n) / 8;
 
                 const int x = i % img_w;
                 const int y = i / img_w;
 
                 img_grey[i] = n;
-                for (unsigned int j = 0; j != 6; ++j) {
+                for (unsigned int j = 0; j != 12; ++j) {
                     const int x0 = x + dithering_matrix[j].dx;
                     const int y0 = y + dithering_matrix[j].dy;
                     if (x0 > (int)img_w - 1 || x0 < 0 || y0 > (int)img_h - 1 || y0 < 0) {
                         continue;
                     }
+                    // the residual quantization error
+                    // warning! have to overcast to signed int before div!
+                    const int d = (int)(o - n) * dithering_matrix[j].v / 48;
                     // keep a value in the <min; max> interval
                     int a = img_grey[x0 + img_w * y0] + d;
                     if (a > 0xff) {

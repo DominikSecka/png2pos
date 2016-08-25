@@ -17,8 +17,8 @@ INPUT_FILES...
 png2pos is a utility to convert PNG images to ESC/POS format (printer control codes and escape sequences) used by POS thermal printers.
 Output file can be just sent to printer.
 .PP
-It accepts any PNG file (B/W, greyscale, RGB, RGBA), applies Histogram Equalization Algorithm and via Atkinson Dithering Algorithm
-converts it to B/W bitmap wrapped by ESC/POS commands.
+It accepts any PNG file (B/W, greyscale, RGB, RGBA), applies Histogram Equalization Algorithm and via
+"Jarvis, Judice, and Ninke" Dithering Algorithm converts it to B/W bitmap wrapped by ESC/POS commands.
 png2pos prepends needed printer initialization binary sequences and adds paper cutoff command, if requested.
 .PP
 png2pos utilizes ESC@, GSV, GS(K, GSL, GS8L and GS(L ESC/POS commands.

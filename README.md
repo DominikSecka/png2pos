@@ -27,7 +27,7 @@ For further details, please check [this blog post](https://mike42.me/blog/2015-0
 
 ## How does it work?
 
-It accepts any PNG file (B/W, greyscale, RGB, RGBA), applies Histogram Equalization Algorithm and via Atkinson Dithering Algorithm converts it to B/W bitmap wrapped by ESC/POS commands.
+It accepts any PNG file (B/W, greyscale, RGB, RGBA), applies Histogram Equalization Algorithm and via "Jarvis, Judice, and Ninke" Dithering Algorithm converts it to B/W bitmap wrapped by ESC/POS commands.
 
 ESC/POS is a printer language. The “POS” stands for “Point of Sale”, the “ESC” stands for “escape” because command instructions are escaped with a special characters. png2pos utilizes ```ESC@```, ```GSV```, ```GSL```, ```GS8L``` and ```GS(L``` ESC/POS commands. It also prepends needed printer initialization binary sequences and adds paper cutoff command, if requested.
 
@@ -56,7 +56,8 @@ You have to build binary file yourself. Clone the source code:
 
 To build and install binary just type:
 
-    $ make install ↵
+    $ make strip ↵
+    $ sudo make install ↵
 
 On Mac typically you can use clang preprocessor:
 
@@ -65,7 +66,7 @@ On Mac typically you can use clang preprocessor:
 On Linux you can also build static binary (e.g. also based on [musl](http://www.musl-libc.org/intro.html)):
 
     $ make CC=/usr/local/musl/bin/musl-gcc static ↵
-    $ make install ↵
+    $ sudo make install ↵
 
 Windows binary is build in MinGW by (MinGW must be included in PATH):
 
@@ -94,7 +95,8 @@ Below you can see each step (with its intermediate product) image passes through
 * Top: Original (24 bits per pixel)
 * Left: Greyscale version (8 bits per pixel)
 * Right: Post-processed version (Histogram Equalization Algorithm, 8 bits per pixel)
-* Bottom: Produced B/W dithered version (Atkinson Dithering Algorithm, 1 bit per pixel)
+* Bottom: Produced B/W dithered version (Atkinson Dithering Algorithm, 1 bit per pixel, now png2pos utilizes
+"Jarvis, Judice, and Ninke" Dithering algorithm)
 
 ![lena](docs/lena.png)
 
