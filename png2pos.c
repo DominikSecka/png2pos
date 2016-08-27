@@ -107,12 +107,6 @@ const unsigned char LIGHTNESS[256] = {
 
 FILE *fout = NULL;
 
-void fputa(const unsigned char *restrict buffer, const size_t length, FILE *stream) {
-    for (unsigned int i = 0; i != length; ++i) {
-        fputc(buffer[i], stream);
-    }
-}
-
 #ifdef DEBUG
 void pbm_write(const char *filename,
         const unsigned int w, const unsigned int h,
@@ -120,11 +114,8 @@ void pbm_write(const char *filename,
 
     FILE *f = fopen(filename, "w");
     if (f) {
-        fprintf(f, "P4 %u %u\n", w, h);
-        for (unsigned int i = 0; i != buffer_size; ++i) {
-            fputc(buffer[i], f);
-        }
-        fputc('\n', f);
+        fprintf(f, "P4\n%u %u\n", w, h);
+        fwrite(buffer, 1, buffer_size, f);
         fflush(f);
         fclose(f), f = NULL;
     }
@@ -279,7 +270,7 @@ int main(int argc, char *argv[]) {
         0x1b, 0x40
     };
     // init printer
-    fputa(ESC_INIT, sizeof(ESC_INIT), fout);
+    fwrite(ESC_INIT, 1, sizeof(ESC_INIT), fout);
     fflush(fout);
 
     // print speed
@@ -290,7 +281,7 @@ int main(int argc, char *argv[]) {
             // m (01-09)
             config.speed
         };
-        fputa(ESC_SPEED, sizeof(ESC_SPEED), fout);
+        fwrite(ESC_SPEED, 1, sizeof(ESC_SPEED), fout);
         fflush(fout);
     }
 
@@ -382,9 +373,9 @@ int main(int argc, char *argv[]) {
                 int dx;
                 int dy;
                 int v;
+            } dithering_matrix[12] = {
                 // for simplicity of computation, all standard dithering formulas
                 // push the error forward, never backward
-            } dithering_matrix[12] = {
                 { .dx =  1, .dy = 0, .v = 7 },
                 { .dx =  2, .dy = 0, .v = 5 },
                 { .dx = -2, .dy = 1, .v = 3 },
@@ -497,7 +488,7 @@ int main(int argc, char *argv[]) {
                     // nl, nh
                     offset & 0xff, offset >> 8 & 0xff
                 };
-                fputa(ESC_OFFSET, sizeof(ESC_OFFSET), fout);
+                fwrite(ESC_OFFSET, 1, sizeof(ESC_OFFSET), fout);
             }
 
             const unsigned int f112_p = 10 + k * (canvas_w >> 3);
@@ -517,9 +508,8 @@ int main(int argc, char *argv[]) {
                 // yl, yh, number of dots in the vertical direction
                 k & 0xff, k >> 8 & 0xff
             };
-            fputa(ESC_STORE, sizeof(ESC_STORE), fout);
-
-            fputa(&img_bw[l * (canvas_w >> 3)], k * (canvas_w >> 3), fout);
+            fwrite(ESC_STORE, 1, sizeof(ESC_STORE), fout);
+            fwrite(&img_bw[l * (canvas_w >> 3)], 1, k * (canvas_w >> 3), fout);
 
             const unsigned char ESC_FLUSH[7] = {
                 // GS ( L, Print the graphics data in the print buffer, p. 241
@@ -529,7 +519,7 @@ int main(int argc, char *argv[]) {
                 // Fn 50
                 0x32
             };
-            fputa(ESC_FLUSH, sizeof(ESC_FLUSH), fout);
+            fwrite(ESC_FLUSH, 1, sizeof(ESC_FLUSH), fout);
             fflush(fout);
         }
 
@@ -546,7 +536,7 @@ int main(int argc, char *argv[]) {
             // The vertical motion unit is specified by GS P.
             0x40
         };
-        fputa(ESC_CUT, sizeof(ESC_CUT), fout);
+        fwrite(ESC_CUT, 1, sizeof(ESC_CUT), fout);
         fflush(fout);
     }
 
