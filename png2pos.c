@@ -112,7 +112,7 @@ void pbm_write(const char *filename,
         const unsigned int w, const unsigned int h,
         const unsigned char *restrict buffer, const size_t buffer_size) {
 
-    FILE *f = fopen(filename, "w");
+    FILE *f = fopen(filename, "wb");
     if (f) {
         fprintf(f, "P4\n%u %u\n", w, h);
         fwrite(buffer, 1, buffer_size, f);
