@@ -1,5 +1,5 @@
 CC ?= gcc
-CFLAGS += -std=c99 -W -Wall -pedantic -O3 -march=native -ftree-vectorize \
+CFLAGS += -std=c99 -W -Wall -pedantic -O3 -ftree-vectorize \
 	-D_POSIX_C_SOURCE=200809L \
 	-D_FILE_OFFSET_BITS=64 \
 	-DLODEPNG_NO_COMPILE_ANCILLARY_CHUNKS \
