@@ -8,7 +8,6 @@ png2pos \- a utility to convert PNG images to ESC/POS format
 [\fB\-c\fR]
 [\fB\-a\fR \fIL|C|R\fR]
 [\fB\-r\fR]
-[\fB\-t\fR \fITHRESHOLD\fR]
 [\fB\-p\fR]
 [\fB\-s\fR \fISPEED\fR]
 [\fB\-o\fR \fIFILE\fR]
@@ -38,10 +37,6 @@ set horizontal image alignment (Left, Center, Right)
 .TP
 .BR \-r
 rotate image upside down before it is printed
-.TP
-.BR "\-t \fITHRESHOLD\fR"
-set the treshold value for conversion to B/W, falling back to the default value 0x80 if not set;
-\fITHRESHOLD\fR must be in the interval <0; 255>, the lower value set, the more bright output created.
 .TP
 .BR \-p
 switch to photo mode (post-process input files)

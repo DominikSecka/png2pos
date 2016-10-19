@@ -13,7 +13,7 @@ codes and escape sequences) used by POS thermal printers.
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.17";
+const char *PNG2POS_VERSION = "1.6.18";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
@@ -49,7 +49,6 @@ struct {
     char align;
     unsigned int rotate;
     const char *output;
-    unsigned int threshold;
     unsigned int gs8l_max_y;
     unsigned int printer_max_width;
     unsigned int speed;
@@ -59,7 +58,6 @@ struct {
     .align = '?',
     .rotate = 0,
     .output = NULL,
-    .threshold = 0x80,
     .gs8l_max_y = GS8L_MAX_Y,
     .printer_max_width = PRINTER_MAX_WIDTH,
     .speed = 0
@@ -133,7 +131,7 @@ int main(int argc, char *argv[]) {
     // Utility Conventions: 12.1 Utility Argument Syntax
     opterr = 0;
     int optc = -1;
-    while ((optc = getopt(argc, argv, ":Vhca:rt:ps:o:")) != -1) {
+    while ((optc = getopt(argc, argv, ":Vhca:rps:o:")) != -1) {
         switch (optc) {
             case 'o':
                 config.output = optarg;
@@ -153,14 +151,6 @@ int main(int argc, char *argv[]) {
 
             case 'r':
                 config.rotate = 1;
-                break;
-
-            case 't':
-                config.threshold = strtoul(optarg, NULL, 0);
-                if (config.threshold > 255) {
-                    config.threshold = 0x80;
-                    fprintf(stderr, "B/W threshold must be in the interval <0; 255>. Falling back to the default value 0x80\n");
-                }
                 break;
 
             case 'p':
@@ -187,14 +177,13 @@ int main(int argc, char *argv[]) {
             case 'h':
                 fprintf(stderr,
                     "png2pos is a utility to convert PNG to ESC/POS\n"
-                    "Usage: png2pos [-V] [-h] [-c] [-a L|C|R] [-r] [-t THRESHOLD] [-p] [-s SPEED] [-o FILE] INPUT_FILES...\n"
+                    "Usage: png2pos [-V] [-h] [-c] [-a L|C|R] [-r] [-p] [-s SPEED] [-o FILE] INPUT_FILES...\n"
                     "\n"
                     "  -V           display the version number and exit\n"
                     "  -h           display this short help and exit\n"
                     "  -c           cut the paper at the end of job\n"
                     "  -a L|C|R     horizontal image alignment (Left, Center, Right)\n"
                     "  -r           rotate image upside down before it is printed\n"
-                    "  -t THRESHOLD set the treshold value for conversion to B/W\n"
                     "  -p           switch to photo mode (post-process input files)\n"
                     "  -s SPEED     set the print speed (1 = slow .. 9 = fast)\n"
                     "  -o FILE      output file\n"
@@ -347,7 +336,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "Image seems to be B/W. -p is probably not good option this time\n");
             }
             if (colors >= 16 && !config.photo) {
-                fprintf(stderr, "Image seems to be greyscale or colored. Maybe you should use options -p and -t for better results\n");
+                fprintf(stderr, "Image seems to be greyscale or colored. Maybe you should use option -p for better results\n");
             }
         }
 
@@ -361,7 +350,6 @@ int main(int argc, char *argv[]) {
             for (unsigned int i = 0; i != img_grey_size; ++i) {
                 img_grey[i] = 255 * histogram[img_grey[i]] / img_grey_size;
             }
-            //config.threshold = 255 * histogram[config.threshold] / img_grey_size;
 
             // Jarvis, Judice, and Ninke Dithering
             // http://www.tannerhelland.com/4660/dithering-eleven-algorithms-source-code/
@@ -392,7 +380,7 @@ int main(int argc, char *argv[]) {
 
             for (unsigned int i = 0; i != img_grey_size; ++i) {
                 const unsigned int o = img_grey[i];
-                const unsigned int n = o <= config.threshold ? 0 : 0xff;
+                const unsigned int n = o <= 0x80 ? 0 : 0xff;
 
                 const int x = i % img_w;
                 const int y = i / img_w;
@@ -438,7 +426,7 @@ int main(int argc, char *argv[]) {
         // compress bytes into bitmap
         for (unsigned int i = 0; i != img_grey_size; ++i) {
             const unsigned int idx = config.rotate ? img_grey_size - 1 - i : i;
-            if (img_grey[idx] <= config.threshold) {
+            if (img_grey[idx] <= 0x80) {
                 const unsigned int x = i % img_w;
                 const unsigned int y = i / img_w;
                 img_bw[(y * canvas_w + x) >> 3] |= 0x80 >> (x & 0x07);
