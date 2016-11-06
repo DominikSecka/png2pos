@@ -1,6 +1,7 @@
 # png2pos
 
 [![Build Status](https://travis-ci.org/petrkutalek/png2pos.svg?branch=master)](https://travis-ci.org/petrkutalek/png2pos)
+[![Analytics](https://ga-beacon.appspot.com/UA-60042036-3/png2pos)](https://github.com/petrkutalek/png2pos)
 
 **NOTE: png2pos fulfills its purpose and does it well. I probably do not intend to develop it any more. It is licensed under MIT: anyone can use it for free, anyone has the right to modify it unless the name "png2pos" is being used for further releases.**
 
