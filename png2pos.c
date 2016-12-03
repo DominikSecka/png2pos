@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
         0x1b, 0x40
     };
     // init printer
-    fwrite(ESC_INIT, 1, sizeof(ESC_INIT), fout);
+    fwrite(ESC_INIT, 1, sizeof ESC_INIT, fout);
     fflush(fout);
 
     // print speed
@@ -270,7 +270,7 @@ int main(int argc, char *argv[]) {
             // m (01-09)
             config.speed
         };
-        fwrite(ESC_SPEED, 1, sizeof(ESC_SPEED), fout);
+        fwrite(ESC_SPEED, 1, sizeof ESC_SPEED, fout);
         fflush(fout);
     }
 
@@ -296,7 +296,7 @@ int main(int argc, char *argv[]) {
 
         // convert RGBA to greyscale
         const unsigned int img_grey_size = img_h * img_w;
-        img_grey = (unsigned char *)calloc(img_grey_size, 1);
+        img_grey = calloc(img_grey_size, 1);
         if (!img_grey) {
             fprintf(stderr, "Could not allocate enough memory\n");
             goto fail;
@@ -412,7 +412,7 @@ int main(int argc, char *argv[]) {
         const unsigned int canvas_w = (img_w + 7) & ~0x7u;
 
         const unsigned int img_bw_size = img_h * (canvas_w >> 3);
-        img_bw = (unsigned char *)calloc(img_bw_size, 1);
+        img_bw = calloc(img_bw_size, 1);
         if (!img_bw) {
             fprintf(stderr, "Could not allocate enough memory\n");
             goto fail;
@@ -476,7 +476,7 @@ int main(int argc, char *argv[]) {
                     // nl, nh
                     offset & 0xff, offset >> 8 & 0xff
                 };
-                fwrite(ESC_OFFSET, 1, sizeof(ESC_OFFSET), fout);
+                fwrite(ESC_OFFSET, 1, sizeof ESC_OFFSET, fout);
             }
 
             const unsigned int f112_p = 10 + k * (canvas_w >> 3);
@@ -496,7 +496,7 @@ int main(int argc, char *argv[]) {
                 // yl, yh, number of dots in the vertical direction
                 k & 0xff, k >> 8 & 0xff
             };
-            fwrite(ESC_STORE, 1, sizeof(ESC_STORE), fout);
+            fwrite(ESC_STORE, 1, sizeof ESC_STORE, fout);
             fwrite(&img_bw[l * (canvas_w >> 3)], 1, k * (canvas_w >> 3), fout);
 
             const unsigned char ESC_FLUSH[7] = {
@@ -507,7 +507,7 @@ int main(int argc, char *argv[]) {
                 // Fn 50
                 0x32
             };
-            fwrite(ESC_FLUSH, 1, sizeof(ESC_FLUSH), fout);
+            fwrite(ESC_FLUSH, 1, sizeof ESC_FLUSH, fout);
             fflush(fout);
         }
 
@@ -524,7 +524,7 @@ int main(int argc, char *argv[]) {
             // The vertical motion unit is specified by GS P.
             0x40
         };
-        fwrite(ESC_CUT, 1, sizeof(ESC_CUT), fout);
+        fwrite(ESC_CUT, 1, sizeof ESC_CUT, fout);
         fflush(fout);
     }
 
