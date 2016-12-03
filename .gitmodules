@@ -1,4 +1,4 @@
 [submodule "lodepng"]
-	path = lodepng
+	path = deps/lodepng
 	url = https://github.com/lvandeve/lodepng.git
 	update = merge

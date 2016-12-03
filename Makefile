@@ -1,5 +1,6 @@
 CC ?= gcc
 CFLAGS += -std=c99 -W -Wall -pedantic -O3 -ftree-vectorize \
+	-I deps/lodepng \
 	-D_POSIX_C_SOURCE=200809L \
 	-D_FILE_OFFSET_BITS=64 \
 	-DLODEPNG_NO_COMPILE_ANCILLARY_CHUNKS \
@@ -9,7 +10,7 @@ CFLAGS += -std=c99 -W -Wall -pedantic -O3 -ftree-vectorize \
 LDFLAGS +=
 PREFIX := /usr/local
 
-OBJS = lodepng.o png2pos.o
+OBJS = png2pos.o deps/lodepng/lodepng.o
 EXEC = png2pos
 
 all : $(EXEC)
@@ -33,6 +34,10 @@ $(EXEC) : $(OBJS)
 	@printf "%-16s%s\n" CC $@
 	@$(CC) -c $(CFLAGS) -o $@ $<
 
+deps/lodepng/%.o : deps/lodepng/%.cpp
+	@printf "%-16s%s\n" CC $@
+	@$(CC) -x c -c $(CFLAGS) -o $@ $<
+
 %.1.gz : %.1
 	@printf "%-16s%s\n" GZ $@
 	@gzip -c -9 $< > $@
@@ -49,7 +54,7 @@ rpi : strip
 
 profiled :
 	make CFLAGS="$(CFLAGS) -fprofile-generate" $(EXEC)
-	find . -type f -exec ./$(EXEC) -o /dev/null -c -r -a c {} \;
+	find . -type f -exec ./$(EXEC) -o /dev/null -p -c -r -a c {} \;
 	-rm -f *.pos
 	make clean
 	make CFLAGS="$(CFLAGS) -fprofile-use" strip
@@ -66,10 +71,6 @@ uninstall :
 
 indent : png2pos.c png2pos.1 README.md
 	sed -i .backup 's/[[:blank:]]*$$//' $^
-
-analyze : CFLAGS += -DDEBUG
-analyze : lodepng.c png2pos.c
-	clang --analyze -Xanalyzer -analyzer-output=text $(CFLAGS) $^
 
 debug : CFLAGS += -DDEBUG
 debug : all

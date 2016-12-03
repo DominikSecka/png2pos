@@ -1,5 +1,6 @@
 CC = gcc
 CFLAGS += -std=gnu99 -O2 -Wall -pedantic \
+	-I deps/lodepng \
 	-D_POSIX_C_SOURCE=200809L \
 	-D_FILE_OFFSET_BITS=64 \
 	-DLODEPNG_NO_COMPILE_ANCILLARY_CHUNKS \
@@ -8,13 +9,13 @@ CFLAGS += -std=gnu99 -O2 -Wall -pedantic \
 	-DLODEPNG_NO_COMPILE_ENCODER
 LDFLAGS += -lm -lcomctl32
 
-OBJS = lodepng.o png2pos.o png2pos.res
+OBJS = png2pos.o png2pos.res deps/lodepng/lodepng.o
 EXEC = png2pos.exe
 
 all : $(EXEC)
 
 strip : $(EXEC)
-	-strip $<
+	-strip --strip-unneeded $<
 
 .PHONY : clean
 clean :
@@ -26,6 +27,9 @@ $(EXEC) : $(OBJS)
 
 %.o : %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
+
+deps/lodepng/%.o : deps/lodepng/%.c
+	$(CC) -x c -c $(CFLAGS) -o $@ $<
 
 %.res : %.rc
 	windres -J rc -O coff -o $@ $<
