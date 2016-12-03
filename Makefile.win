@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS += -std=gnu99 -O2 -Wall -pedantic \
-	-I deps/lodepng \
+CFLAGS += -std=c99 -O3 -Wall -pedantic \
+	-Ideps/lodepng \
 	-D_POSIX_C_SOURCE=200809L \
 	-D_FILE_OFFSET_BITS=64 \
 	-DLODEPNG_NO_COMPILE_ANCILLARY_CHUNKS \

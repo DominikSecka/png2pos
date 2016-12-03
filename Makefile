@@ -1,6 +1,6 @@
 CC ?= gcc
 CFLAGS += -std=c99 -W -Wall -pedantic -O3 -ftree-vectorize \
-	-I deps/lodepng \
+	-Ideps/lodepng \
 	-D_POSIX_C_SOURCE=200809L \
 	-D_FILE_OFFSET_BITS=64 \
 	-DLODEPNG_NO_COMPILE_ANCILLARY_CHUNKS \
@@ -20,7 +20,7 @@ man : $(EXEC).1.gz
 strip : $(EXEC)
 	-strip --strip-unneeded $<
 
-.PHONY : clean analyze install uninstall indent
+.PHONY : clean install uninstall indent
 
 clean :
 	-rm -f $(OBJS) $(EXEC)
@@ -70,7 +70,7 @@ uninstall :
 	rm -f $(DESTDIR)$(PREFIX)/share/man/man1/$(EXEC).1.gz
 
 indent : png2pos.c png2pos.1 README.md
-	sed -i .backup 's/[[:blank:]]*$$//' $^
+	sed -i.backup 's/[[:blank:]]*$$//' $^
 
 debug : CFLAGS += -DDEBUG
 debug : all

@@ -13,7 +13,7 @@ codes and escape sequences) used by POS thermal printers.
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.18";
+const char *PNG2POS_VERSION = "1.6.19";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
@@ -32,9 +32,10 @@ void lodepng_free(void *ptr) {
 #endif
 
 // number of dots/lines in vertical direction in one F112 command
-// set to <= 128u for Epson TM-J2000/J2100
+// set GS8L_MAX_Y env. var. to <= 128u for Epson TM-J2000/J2100
+// default value is 1662, TM-T70, TM-T88 etc.
 #ifndef GS8L_MAX_Y
-#define GS8L_MAX_Y 384u
+#define GS8L_MAX_Y 1662
 #endif
 
 // max image width printer is able to process
@@ -254,16 +255,16 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Could not set new buffer policy on output stream\n");
     }
 
+    // init printer
     const unsigned char ESC_INIT[2] = {
         // ESC @, Initialize printer, p. 412
         0x1b, 0x40
     };
-    // init printer
     fwrite(ESC_INIT, 1, sizeof ESC_INIT, fout);
     fflush(fout);
 
     // print speed
-    if (config.speed != 0) {
+    if (config.speed > 0) {
         const unsigned char ESC_SPEED[7] = {
             // GS ( K <Function 50>, Select the print speed, p. 451
             0x1d, 0x28, 0x4b, 0x02, 0x00, 0x32,
@@ -444,20 +445,22 @@ int main(int argc, char *argv[]) {
         switch (config.align) {
             case 'C':
                 offset = (config.printer_max_width - canvas_w) / 2;
+                if (offset < 0) {
+                    offset = 0;
+                }
                 break;
 
             case 'R':
                 offset = config.printer_max_width - canvas_w;
+	        if (offset < 0) {
+	            offset = 0;
+	        }
                 break;
 
             case 'L':
             case '?':
             default:
                 offset = 0;
-        }
-
-        if (offset < 0) {
-            offset = 0;
         }
 
         // offset have to be a multiple of 8
@@ -469,22 +472,20 @@ int main(int argc, char *argv[]) {
                 k = img_h - l;
             }
 
-            if (offset) {
-                const unsigned char ESC_OFFSET[4] = {
-                    // GS L, Set left margin, p. 169
-                    0x1d, 0x4c,
-                    // nl, nh
-                    offset & 0xff, offset >> 8 & 0xff
-                };
-                fwrite(ESC_OFFSET, 1, sizeof ESC_OFFSET, fout);
-            }
+            const unsigned char ESC_OFFSET[4] = {
+                // GS L, Set left margin, p. 169
+                0x1d, 0x4c,
+                // nl, nh
+                offset & 0xff, offset >> 8 & 0xff
+            };
+            fwrite(ESC_OFFSET, 1, sizeof ESC_OFFSET, fout);
 
             const unsigned int f112_p = 10 + k * (canvas_w >> 3);
             const unsigned char ESC_STORE[17] = {
                 // GS 8 L, Store the graphics data in the print buffer (raster format), p. 252
                 0x1d, 0x38, 0x4c,
                 // p1 p2 p3 p4
-                f112_p & 0xff, f112_p >> 8 & 0xff, 0x00, 0x00,
+                f112_p & 0xff, f112_p >> 8 & 0xff, f112_p >> 16 & 0xff, f112_p >> 24 & 0xff,
                 // Function 112
                 0x30, 0x70, 0x30,
                 // bx by, zoom
