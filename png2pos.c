@@ -1,4 +1,4 @@
-/*
+/**
 png2pos is a utility to convert PNG images to ESC/POS format (printer control
 codes and escape sequences) used by POS thermal printers.
 */
@@ -10,13 +10,15 @@ codes and escape sequences) used by POS thermal printers.
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.21";
+const char *PNG2POS_VERSION = "1.6.22";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
 // modified lodepng allocators
 void* lodepng_malloc(size_t size) {
-    return calloc(size, sizeof(char));
+    // for security reason I use calloc instead of malloc;
+    // here we redefine lodepng allocator
+    return calloc(size, 1);
 }
 
 void* lodepng_realloc(void *ptr, size_t new_size) {
@@ -164,7 +166,7 @@ int main(int argc, char *argv[]) {
                     "\n"
                     "Please read the manual page (man png2pos)\n"
                     "Report bugs at https://github.com/petrkutalek/png2pos/issues\n"
-                    "(c) Petr Kutalek <petr@kutalek.cz>, 2012 - 2016, Licensed under the MIT license\n"
+                    "(c) Petr Kutalek <petr@kutalek.cz>, 2012 - 2017, Licensed under the MIT license\n"
                 );
                 ret = EXIT_SUCCESS;
                 goto fail;
@@ -287,7 +289,7 @@ int main(int argc, char *argv[]) {
                      + 0.7152f * powf(g / 255.0f, 2.2f)
                      + 0.0722f * powf(b / 255.0f, 2.2f);
             unsigned int L_ = 255 * (116.0f * powf(y_, 1/3.0f) - 16);
-            */            
+            */
             img_grey[i] = L_;
 
             // prepare a histogram for HEA
@@ -331,7 +333,7 @@ int main(int argc, char *argv[]) {
             // a lesser-known – but much more powerful – algorithm was also published.
             // With this algorithm, the error is distributed to three times as many pixels as
             // in Floyd-Steinberg, leading to much smoother – and more subtle – output.
-            struct dithering_matrix dithering_matrix[12] = {
+            const struct dithering_matrix dithering_matrix[12] = {
                 // for simplicity of computation, all standard dithering formulas
                 // push the error forward, never backward
                 { .dx =  1, .dy = 0, .v = 7/48.0f },
@@ -488,8 +490,10 @@ int main(int argc, char *argv[]) {
 fail:
     free(img_rgba);
     img_rgba = NULL;
+
     free(img_grey);
     img_grey = NULL;
+
     free(img_bw);
     img_bw = NULL;
 

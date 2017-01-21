@@ -1,6 +1,6 @@
-CC ?= gcc
+CC = gcc
 CFLAGS += -std=c99 -W -Wall -pedantic -ftree-vectorize \
-	-fPIE -fstack-protector-strong -O3 -D_FORTIFY_SOURCE=2 \
+	-fPIE -pie -fstack-protector -O3 -D_FORTIFY_SOURCE=2 \
 	-Ideps/lodepng \
 	-D_POSIX_C_SOURCE=200809L \
 	-D_FILE_OFFSET_BITS=64 \
