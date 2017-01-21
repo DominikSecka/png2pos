@@ -1,5 +1,6 @@
 CC ?= gcc
-CFLAGS += -std=c99 -W -Wall -pedantic -O3 -ftree-vectorize \
+CFLAGS += -std=c99 -W -Wall -pedantic -ftree-vectorize \
+	-fPIE -fstack-protector-strong -O3 -D_FORTIFY_SOURCE=2 \
 	-Ideps/lodepng \
 	-D_POSIX_C_SOURCE=200809L \
 	-D_FILE_OFFSET_BITS=64 \
@@ -7,7 +8,7 @@ CFLAGS += -std=c99 -W -Wall -pedantic -O3 -ftree-vectorize \
 	-DLODEPNG_NO_COMPILE_CPP \
 	-DLODEPNG_NO_COMPILE_ALLOCATORS \
 	-DLODEPNG_NO_COMPILE_ENCODER
-LDFLAGS +=
+LDFLAGS += -Wl,-z,now -Wl,-z,relro
 PREFIX := /usr/local
 
 all : png2pos
@@ -24,10 +25,12 @@ install : all man
 	mkdir -p $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/share/man/man1
 	install -m755 png2pos $(DESTDIR)$(PREFIX)/bin
 	install -m644 png2pos.1.gz $(DESTDIR)$(PREFIX)/share/man/man1
+	install -m644 -T png2pos.complete /etc/bash_completion.d/png2pos
 
 uninstall :
 	rm -f $(DESTDIR)$(PREFIX)/bin/png2pos
 	rm -f $(DESTDIR)$(PREFIX)/share/man/man1/png2pos.1.gz
+	rm -f /etc/bash_completion.d/png2pos
 
 png2pos : png2pos.o deps/lodepng/lodepng.o
 	@printf "%-16s%s\n" LD $@
