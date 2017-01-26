@@ -6,8 +6,15 @@ codes and escape sequences) used by POS thermal printers.
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#ifndef _WIN32
 #include <unistd.h>
 #include <getopt.h>
+#else
+#include <io.h>
+#include "wingetopt.h"
+#define isatty _isatty
+#define fileno _fileno
+#endif
 #include "lodepng.h"
 
 const char *PNG2POS_VERSION = "1.6.22";
@@ -366,7 +373,7 @@ int main(int argc, char *argv[]) {
                     }
                     // the residual quantization error
                     // warning! have to overcast to signed int before calculation!
-                    int d = (int)(o - n) * dithering_matrix[j].v;
+                    int d = (int)((float)(o - n) * dithering_matrix[j].v);
                     // keep a value in the <min; max> interval
                     int a = img_grey[x0 + img_w * y0] + d;
                     if (a > 0xff) {
