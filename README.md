@@ -10,7 +10,9 @@ a utility for embedded projects, for whose printing PNG files is sufficient and 
 solution.**
 
 NOTE: If you are using png2pos and would like to help with development and maintenance please
-consider to make a donation via [bitcoin (1PnG2posg7o9zZVhdnfHMMGhSBe4XoVAnY)](bitcoin:1PnG2posg7o9zZVhdnfHMMGhSBe4XoVAnY).
+consider to make a donation via bitcoin `1PnG2posg7o9zZVhdnfHMMGhSBe4XoVAnY`:
+
+![bitcoin 1PnG2posg7o9zZVhdnfHMMGhSBe4XoVAnY](https://bitref.com/qr.php?data=1PnG2posg7o9zZVhdnfHMMGhSBe4XoVAnY)
 
 png2pos is:
 
