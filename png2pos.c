@@ -10,7 +10,7 @@ codes and escape sequences) used by POS thermal printers.
 #include <getopt.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.22";
+const char *PNG2POS_VERSION = "1.6.23";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
@@ -77,13 +77,37 @@ FILE *fout = NULL;
 void pbm_write(const char *filename, unsigned int w, unsigned int h,
         const unsigned char *buffer, size_t buffer_size) {
 
-    FILE *f = fopen(filename, "wb");
-    if (f) {
-        fprintf(f, "P4\n%u %u\n", w, h);
-        fwrite(buffer, 1, buffer_size, f);
-        fflush(f);
-        fclose(f);
-        f = NULL;
+    if (access(filename, F_OK) != -1) {
+        fprintf(stderr, "Debug file '%s' exists. Please remove it.\n", filename);
+    }
+    else {
+        FILE *f = fopen(filename, "wb");
+        if (f) {
+            fprintf(f, "P4\n%u %u\n", w, h);
+            fwrite(buffer, 1, buffer_size, f);
+            fflush(f);
+            fclose(f);
+            f = NULL;
+        }
+    }
+}
+
+void png_write(const char *filename, unsigned int w, unsigned int h,
+        const unsigned char *buffer, size_t img_bw_size) {
+
+    if (access(filename, F_OK) != -1) {
+        fprintf(stderr, "Debug file '%s' exists. Please remove it.\n", filename);
+    }
+    else {
+        unsigned char *inv = calloc(img_bw_size, 1);
+        if (inv) {
+            for (unsigned int i = 0; i != img_bw_size; ++i) {
+                inv[i] = ~buffer[i];
+            }
+            lodepng_encode_file(filename, inv, w, h, LCT_GREY, 1);
+            free(inv);
+            inv = NULL;
+        }
     }
 }
 #endif
@@ -427,6 +451,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef DEBUG
         pbm_write("debug.pbm", canvas_w, img_h, img_bw, img_bw_size);
+        png_write("debug.png", canvas_w, img_h, img_bw, img_bw_size);
 #endif
 
         // chunking, l = lines already printed, currently processing a chunk of height k
