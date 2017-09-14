@@ -1,27 +1,28 @@
-/**
-png2pos is a utility to convert PNG images to ESC/POS format (printer control
-codes and escape sequences) used by POS thermal printers.
+/*
+png2pos is a utility to convert PNG images to ESC/POS format
+(printer control codes and escape sequences) used by POS thermal
+printers.
 */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <getopt.h>
 #include "lodepng.h"
 
 const char *PNG2POS_VERSION = "1.6.23";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
-// modified lodepng allocators
-void* lodepng_malloc(size_t size) {
-    // for security reason I use calloc instead of malloc;
-    // here we redefine lodepng allocator
+
+/* modified lodepng allocators */
+void *lodepng_malloc(size_t size) {
+    /* for security reason I use calloc instead of malloc; here we
+       redefine lodepng allocator */
     return calloc(size, 1);
 }
 
-void* lodepng_realloc(void *ptr, size_t new_size) {
+void *lodepng_realloc(void *ptr, size_t new_size) {
     return realloc(ptr, new_size);
 }
 
@@ -30,14 +31,14 @@ void lodepng_free(void *ptr) {
 }
 #endif
 
-// number of dots/lines in vertical direction in one F112 command
-// set GS8L_MAX_Y env. var. to <= 128u for Epson TM-J2000/J2100
-// default value is 1662, TM-T70, TM-T88 etc.
+/* number of dots/lines in vertical direction in one F112 command
+set GS8L_MAX_Y env. var. to <= 128u for Epson TM-J2000/J2100
+default value is 1662, TM-T70, TM-T88 etc. */
 #ifndef GS8L_MAX_Y
 #define GS8L_MAX_Y 1662
 #endif
 
-// max image width printer is able to process
+/* max image width printer is able to process */
 #ifndef PRINTER_MAX_WIDTH
 #define PRINTER_MAX_WIDTH 512u
 #endif
@@ -59,7 +60,7 @@ struct app_config {
     unsigned int speed;
 };
 
-// app configuration
+/* app configuration */
 struct app_config config = {
     .cut = 0,
     .photo = 0,
@@ -75,13 +76,14 @@ FILE *fout = NULL;
 
 #ifdef DEBUG
 void pbm_write(const char *filename, unsigned int w, unsigned int h,
-        const unsigned char *buffer, size_t buffer_size) {
+    const unsigned char *buffer, size_t buffer_size) {
 
     if (access(filename, F_OK) != -1) {
-        fprintf(stderr, "Debug file '%s' exists. Please remove it.\n", filename);
-    }
-    else {
+        fprintf(stderr, "Debug file '%s' exists. Please remove it.\n",
+            filename);
+    } else {
         FILE *f = fopen(filename, "wb");
+
         if (f) {
             fprintf(f, "P4\n%u %u\n", w, h);
             fwrite(buffer, 1, buffer_size, f);
@@ -93,13 +95,14 @@ void pbm_write(const char *filename, unsigned int w, unsigned int h,
 }
 
 void png_write(const char *filename, unsigned int w, unsigned int h,
-        const unsigned char *buffer, size_t img_bw_size) {
+    const unsigned char *buffer, size_t img_bw_size) {
 
     if (access(filename, F_OK) != -1) {
-        fprintf(stderr, "Debug file '%s' exists. Please remove it.\n", filename);
-    }
-    else {
+        fprintf(stderr, "Debug file '%s' exists. Please remove it.\n",
+            filename);
+    } else {
         unsigned char *inv = calloc(img_bw_size, 1);
+
         if (inv) {
             for (unsigned int i = 0; i != img_bw_size; ++i) {
                 inv[i] = ~buffer[i];
@@ -119,10 +122,14 @@ int main(int argc, char *argv[]) {
     unsigned char *img_grey = NULL;
     unsigned char *img_bw = NULL;
 
-    // http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html
-    // Utility Conventions: 12.1 Utility Argument Syntax
-    opterr = 0;
+    /* http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html
+       Utility Conventions: 12.1 Utility Argument Syntax */
+    extern int optind;
+    extern int opterr;
+    extern int optopt;
+    extern char *optarg;
     int optc = -1;
+
     while ((optc = getopt(argc, argv, ":Vhca:rps:o:")) != -1) {
         switch (optc) {
             case 'o':
@@ -136,7 +143,8 @@ int main(int argc, char *argv[]) {
             case 'a':
                 config.align = toupper(optarg[0]);
                 if (!strchr("LCR", config.align)) {
-                    fprintf(stderr, "Unknown horizontal alignment '%c'\n", config.align);
+                    fprintf(stderr, "Unknown horizontal alignment '%c'\n",
+                        config.align);
                     goto fail;
                 }
                 break;
@@ -159,8 +167,11 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'V':
-                fprintf(stderr, "%s %s (%s)\n", "png2pos", PNG2POS_VERSION, PNG2POS_BUILTON);
-                fprintf(stderr, "%s %s\n", "LodePNG", LODEPNG_VERSION_STRING);
+                fprintf(stderr,
+                    "%s %s (%s)\n", "png2pos", PNG2POS_VERSION,
+                    PNG2POS_BUILTON);
+                fprintf(stderr, "%s %s\n", "LodePNG",
+                    LODEPNG_VERSION_STRING);
 #ifdef DEBUG
                 fprintf(stderr, "%s\n", "DEBUG VERSION");
 #endif
@@ -170,8 +181,8 @@ int main(int argc, char *argv[]) {
             case 'h':
                 fprintf(stderr,
                     "png2pos is a utility to convert PNG to ESC/POS\n"
-                    "Usage: png2pos [-V] [-h] [-c] [-a L|C|R] [-r] [-p] [-s SPEED] [-o FILE] "
-                        "INPUT_FILES...\n"
+                    "Usage: png2pos [-V] [-h] [-c] [-a L|C|R] [-r] [-p] "
+                        "[-s SPEED] [-o FILE] INPUT_FILES...\n"
                     "\n"
                     "  -V           display the version number and exit\n"
                     "  -h           display this short help and exit\n"
@@ -190,13 +201,14 @@ int main(int argc, char *argv[]) {
                     "\n"
                     "Please read the manual page (man png2pos)\n"
                     "Report bugs at https://github.com/petrkutalek/png2pos/issues\n"
-                    "(c) Petr Kutalek <petr@kutalek.cz>, 2012 - 2017, Licensed under the MIT license\n"
-                );
+                    "(c) Petr Kutalek <petr@kutalek.cz>, 2012 - 2017, "
+                        "Licensed under the MIT license\n");
                 ret = EXIT_SUCCESS;
                 goto fail;
 
             case ':':
-                fprintf(stderr, "Option '%c' requires an argument\n", optopt);
+                fprintf(stderr, "Option '%c' requires an argument\n",
+                    optopt);
                 fprintf(stderr, "For usage options run 'png2pos -h'\n");
                 goto fail;
 
@@ -214,85 +226,91 @@ int main(int argc, char *argv[]) {
 
     {
         char *printer_max_width_env = getenv("PNG2POS_PRINTER_MAX_WIDTH");
+
         if (printer_max_width_env) {
-            config.printer_max_width = strtoul(printer_max_width_env, NULL, 0);
+            config.printer_max_width = strtoul(printer_max_width_env,
+                NULL, 0);
         }
-        // printer_max_width must be divisible by 8!!
+        /* printer_max_width must be divisible by 8!! */
         config.printer_max_width &= ~0x7u;
     }
 
     {
         char *gs8l_max_y_env = getenv("PNG2POS_GS8L_MAX_Y");
+
         if (gs8l_max_y_env) {
             config.gs8l_max_y = strtoul(gs8l_max_y_env, NULL, 0);
         }
     }
 
-    // open output file and disable line buffering
+    /* open output file and disable line buffering */
     if (!config.output || !strcmp(config.output, "-")) {
         fout = stdout;
     } else {
         fout = fopen(config.output, "wb");
         if (!fout) {
-            fprintf(stderr, "Could not open output file '%s'\n", config.output);
+            fprintf(stderr, "Could not open output file '%s'\n",
+                config.output);
             goto fail;
         }
     }
 
     if (isatty(fileno(fout))) {
-        fprintf(stderr, "This utility produces binary sequence printer commands. "
-            "Output have to be redirected\n");
+        fprintf(stderr, "This utility produces binary sequence printer "
+            "commands. Output have to be redirected\n");
         goto fail;
     }
 
     if (setvbuf(fout, NULL, _IOFBF, 8192)) {
-        fprintf(stderr, "Could not set new buffer policy on output stream\n");
+        fprintf(stderr, "Could not set new buffer policy on "
+            "output stream\n");
     }
-
-    // init printer
+    /* init printer */
     const unsigned char ESC_INIT[2] = {
-        // ESC @, Initialize printer, p. 412
+        /* ESC @, Initialize printer, p. 412 */
         0x1b, 0x40
     };
     fwrite(ESC_INIT, 1, sizeof ESC_INIT, fout);
     fflush(fout);
 
-    // print speed
+    /* print speed */
     if (config.speed > 0) {
         const unsigned char ESC_SPEED[7] = {
-            // GS ( K <Function 50>, Select the print speed, p. 451
+            /* GS ( K <Function 50>, Select the print speed, p. 451 */
             0x1d, 0x28, 0x4b, 0x02, 0x00, 0x32,
-            // m (01-09)
+            /* m (01-09) */
             config.speed
         };
         fwrite(ESC_SPEED, 1, sizeof ESC_SPEED, fout);
         fflush(fout);
     }
-
-    // for each input file
+    /* for each input file */
     while (optind != argc) {
         char *input = argv[optind++];
 
-        // load RGBA PNG
+        /* load RGBA PNG */
         unsigned int img_w = 0;
         unsigned int img_h = 0;
-        unsigned int lodepng_error = lodepng_decode32_file(&img_rgba, &img_w, &img_h, input);
+        unsigned int lodepng_error = lodepng_decode32_file(&img_rgba,
+            &img_w, &img_h, input);
+
         if (lodepng_error) {
-            fprintf(stderr, "Could not load and process input PNG file, %s\n",
-                lodepng_error_text(lodepng_error));
+            fprintf(stderr, "Could not load and process input "
+                "PNG file, %s\n", lodepng_error_text(lodepng_error));
             goto fail;
         }
 
         if (img_w > config.printer_max_width) {
-            fprintf(stderr, "Image width %u px exceeds the printer's capability (%u px)\n",
-                img_w, config.printer_max_width);
+            fprintf(stderr, "Image width %u px exceeds the printer's "
+                "capability (%u px)\n", img_w, config.printer_max_width);
             goto fail;
         }
 
         unsigned int histogram[256] = { 0 };
 
-        // convert RGBA to greyscale
+        /* convert RGBA to greyscale */
         unsigned int img_grey_size = img_h * img_w;
+
         img_grey = calloc(img_grey_size, 1);
         if (!img_grey) {
             fprintf(stderr, "Could not allocate enough memory\n");
@@ -300,23 +318,26 @@ int main(int argc, char *argv[]) {
         }
 
         for (unsigned int i = 0; i != img_grey_size; ++i) {
-            // A
+            /* A */
             unsigned int a = img_rgba[(i << 2) | 3];
-            // RGBA → RGB → L*
-            unsigned int r = (255 - a) + a / 255 * img_rgba[ i << 2     ];
+
+            /* RGBA → RGB → L* */
+            unsigned int r = (255 - a) + a / 255 * img_rgba[i << 2];
             unsigned int g = (255 - a) + a / 255 * img_rgba[(i << 2) | 1];
             unsigned int b = (255 - a) + a / 255 * img_rgba[(i << 2) | 2];
-            unsigned int L_ = (55 * r + 182 * g + 18 * b) / 255;
-            /*
-            // RGB →  luminance Y → lightness L*
-            float y_ = 0.2126f * powf(r / 255.0f, 2.2f)
-                     + 0.7152f * powf(g / 255.0f, 2.2f)
-                     + 0.0722f * powf(b / 255.0f, 2.2f);
-            unsigned int L_ = 255 * (116.0f * powf(y_, 1/3.0f) - 16);
-            */
-            img_grey[i] = L_;
+            unsigned int L = (55 * r + 182 * g + 18 * b) / 255;
 
-            // prepare a histogram for HEA
+            /**
+               RGB →  luminance Y → lightness L*
+
+               float y_ = 0.2126f * powf(r / 255.0f, 2.2f)
+               + 0.7152f * powf(g / 255.0f, 2.2f)
+               + 0.0722f * powf(b / 255.0f, 2.2f);
+               unsigned int L = 255 * (116.0f * powf(y_, 1/3.0f) - 16);
+             */
+            img_grey[i] = L;
+
+            /* prepare a histogram for HEA */
             ++histogram[img_grey[i]];
         }
 
@@ -324,15 +345,17 @@ int main(int argc, char *argv[]) {
         img_rgba = NULL;
 
         {
-            // -p hints
+            /* -p hints */
             unsigned int colors = 0;
+
             for (unsigned int i = 0; i != 256; ++i) {
                 if (histogram[i]) {
                     ++colors;
                 }
             }
             if (colors < 16 && config.photo) {
-                fprintf(stderr, "Image seems to be B/W. -p is probably not good option this time\n");
+                fprintf(stderr, "Image seems to be B/W. -p is probably "
+                    "not good option this time\n");
             }
             if (colors >= 16 && !config.photo) {
                 fprintf(stderr, "Image seems to be greyscale or colored. "
@@ -340,10 +363,9 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        // post-processing
-        // convert to B/W bitmap
+        /* post-processing convert to B/W bitmap */
         if (config.photo) {
-            // Histogram Equalization Algorithm
+            /* Histogram Equalization Algorithm */
             for (unsigned int i = 1; i != 256; ++i) {
                 histogram[i] += histogram[i - 1];
             }
@@ -351,27 +373,31 @@ int main(int argc, char *argv[]) {
                 img_grey[i] = 255 * histogram[img_grey[i]] / img_grey_size;
             }
 
-            // Jarvis, Judice, and Ninke Dithering
-            // http://www.tannerhelland.com/4660/dithering-eleven-algorithms-source-code/
-            // In the same year that Floyd and Steinberg published their famous dithering algorithm,
-            // a lesser-known – but much more powerful – algorithm was also published.
-            // With this algorithm, the error is distributed to three times as many pixels as
-            // in Floyd-Steinberg, leading to much smoother – and more subtle – output.
+            /* Jarvis, Judice, and Ninke Dithering
+               http://www.tannerhelland.com/4660/
+                dithering-eleven-algorithms-source-code/
+
+               In the same year that Floyd and Steinberg published their
+               famous dithering algorithm, a lesser-known – but much more
+               powerful – algorithm was also published. With this
+               algorithm, the error is distributed to three times as many
+               pixels as in Floyd-Steinberg, leading to much smoother –
+               and more subtle – output. */
             const struct dithering_matrix dithering_matrix[12] = {
-                // for simplicity of computation, all standard dithering formulas
-                // push the error forward, never backward
-                { .dx =  1, .dy = 0, .v = 7/48.0f },
-                { .dx =  2, .dy = 0, .v = 5/48.0f },
-                { .dx = -2, .dy = 1, .v = 3/48.0f },
-                { .dx = -1, .dy = 1, .v = 5/48.0f },
-                { .dx =  0, .dy = 1, .v = 7/48.0f },
-                { .dx =  1, .dy = 1, .v = 5/48.0f },
-                { .dx =  2, .dy = 1, .v = 3/48.0f },
-                { .dx = -2, .dy = 2, .v = 1/48.0f },
-                { .dx = -1, .dy = 2, .v = 3/48.0f },
-                { .dx =  0, .dy = 2, .v = 5/48.0f },
-                { .dx =  1, .dy = 2, .v = 3/48.0f },
-                { .dx =  2, .dy = 2, .v = 1/48.0f }
+                /* for simplicity of computation, all standard dithering
+                   formulas push the error forward, never backward */
+                {.dx =  1, .dy = 0, .v = 7 / 48.0f},
+                {.dx =  2, .dy = 0, .v = 5 / 48.0f},
+                {.dx = -2, .dy = 1, .v = 3 / 48.0f},
+                {.dx = -1, .dy = 1, .v = 5 / 48.0f},
+                {.dx =  0, .dy = 1, .v = 7 / 48.0f},
+                {.dx =  1, .dy = 1, .v = 5 / 48.0f},
+                {.dx =  2, .dy = 1, .v = 3 / 48.0f},
+                {.dx = -2, .dy = 2, .v = 1 / 48.0f},
+                {.dx = -1, .dy = 2, .v = 3 / 48.0f},
+                {.dx =  0, .dy = 2, .v = 5 / 48.0f},
+                {.dx =  1, .dy = 2, .v = 3 / 48.0f},
+                {.dx =  2, .dy = 2, .v = 1 / 48.0f}
             };
 
             for (unsigned int i = 0; i != img_grey_size; ++i) {
@@ -385,42 +411,44 @@ int main(int argc, char *argv[]) {
                 for (unsigned int j = 0; j != 12; ++j) {
                     int x0 = x + dithering_matrix[j].dx;
                     int y0 = y + dithering_matrix[j].dy;
-                    if (x0 > (int)img_w - 1 || x0 < 0 || y0 > (int)img_h - 1 || y0 < 0) {
+
+                    if (x0 > (int) img_w - 1 || x0 < 0  ||
+                        y0 > (int) img_h - 1 || y0 < 0) {
                         continue;
                     }
-                    // the residual quantization error
-                    // warning! have to overcast to signed int before calculation!
-                    int d = (int)(o - n) * dithering_matrix[j].v;
-                    // keep a value in the <min; max> interval
+                    /* the residual quantization error, warning: !have to
+                       overcast to signed int before calculation! */
+                    int d = (int) (o - n) * dithering_matrix[j].v;
+
+                    /* keep a value in the <min; max> interval */
                     int a = img_grey[x0 + img_w * y0] + d;
+
                     if (a > 0xff) {
                         a = 0xff;
-                    }
-                    else if (a < 0) {
+                    } else if (a < 0) {
                         a = 0;
                     }
                     img_grey[x0 + img_w * y0] = a;
                 }
             }
         }
-
-        // canvas size is width of printable area
+        /* canvas size is width of printable area */
         unsigned int canvas_w = config.printer_max_width;
 
         unsigned int img_bw_size = img_h * (canvas_w >> 3);
+
         img_bw = calloc(img_bw_size, 1);
         if (!img_bw) {
             fprintf(stderr, "Could not allocate enough memory\n");
             goto fail;
         }
-
-        // align rotated image to the right border
+        /* align rotated image to the right border */
         if (config.rotate && config.align == '?') {
             config.align = 'R';
         }
-
-        // left offset
+        /* left offset */
         unsigned int offset = 0;
+
         switch (config.align) {
             case 'C':
                 offset = (canvas_w - img_w) / 2;
@@ -436,12 +464,14 @@ int main(int argc, char *argv[]) {
                 offset = 0;
         }
 
-        // compress bytes into bitmap
+        /* compress bytes into bitmap */
         for (unsigned int i = 0; i != img_grey_size; ++i) {
             unsigned int idx = config.rotate ? img_grey_size - 1 - i : i;
+
             if (img_grey[idx] <= 0x80) {
                 unsigned int x = i % img_w + offset;
                 unsigned int y = i / img_w;
+
                 img_bw[(y * canvas_w + x) >> 3] |= 0x80 >> (x & 0x07);
             }
         }
@@ -454,38 +484,44 @@ int main(int argc, char *argv[]) {
         png_write("debug.png", canvas_w, img_h, img_bw, img_bw_size);
 #endif
 
-        // chunking, l = lines already printed, currently processing a chunk of height k
+        /* chunking, l = lines already printed, currently processing a
+           chunk of height k */
         for (unsigned int l = 0, k = config.gs8l_max_y; l < img_h; l += k) {
             if (k > img_h - l) {
                 k = img_h - l;
             }
 
             unsigned int f112_p = 10 + k * (canvas_w >> 3);
+
             const unsigned char ESC_STORE[17] = {
-                // GS 8 L, Store the graphics data in the print buffer (raster format), p. 252
+                /* GS 8 L, Store the graphics data in the print buffer
+                   (raster format), p. 252 */
                 0x1d, 0x38, 0x4c,
-                // p1 p2 p3 p4
-                f112_p & 0xff, f112_p >> 8 & 0xff, f112_p >> 16 & 0xff, f112_p >> 24 & 0xff,
-                // Function 112
+                /* p1 p2 p3 p4 */
+                f112_p & 0xff, f112_p >> 8 & 0xff, f112_p >> 16 & 0xff,
+                f112_p >> 24 & 0xff,
+                /* Function 112 */
                 0x30, 0x70, 0x30,
-                // bx by, zoom
+                /* bx by, zoom */
                 0x01, 0x01,
-                // c, single-color printing model
+                /* c, single-color printing model */
                 0x31,
-                // xl, xh, number of dots in the horizontal direction
+                /* xl, xh, number of dots in the horizontal direction */
                 canvas_w & 0xff, canvas_w >> 8 & 0xff,
-                // yl, yh, number of dots in the vertical direction
+                /* yl, yh, number of dots in the vertical direction */
                 k & 0xff, k >> 8 & 0xff
             };
             fwrite(ESC_STORE, 1, sizeof ESC_STORE, fout);
-            fwrite(&img_bw[l * (canvas_w >> 3)], 1, k * (canvas_w >> 3), fout);
+            fwrite(&img_bw[l * (canvas_w >> 3)], 1, k * (canvas_w >> 3),
+                fout);
 
             const unsigned char ESC_FLUSH[7] = {
-                // GS ( L, Print the graphics data in the print buffer, p. 241
-                // Moves print position to the left side of the print area after
-                // printing of graphics data is completed
+                /* GS ( L, Print the graphics data in the print buffer,
+                   p. 241 Moves print position to the left side of the
+                   print area after printing of graphics data is
+                   completed */
                 0x1d, 0x28, 0x4c, 0x02, 0x00, 0x30,
-                // Fn 50
+                /* Fn 50 */
                 0x32
             };
             fwrite(ESC_FLUSH, 1, sizeof ESC_FLUSH, fout);
@@ -494,16 +530,16 @@ int main(int argc, char *argv[]) {
 
         free(img_bw);
         img_bw = NULL;
-   }
+    }
 
     if (config.cut) {
-        // cut the paper
+        /* cut the paper */
         const unsigned char ESC_CUT[4] = {
-            // GS V, Sub-Function B, p. 373
+            /* GS V, Sub-Function B, p. 373 */
             0x1d, 0x56, 0x41,
-            // Feeds paper to (cutting position + n × vertical motion unit)
-            // and executes a full cut (cuts the paper completely)
-            // The vertical motion unit is specified by GS P.
+            /* Feeds paper to (cutting position + n × vertical motion
+               unit) and executes a full cut (cuts the paper completely)
+               The vertical motion unit is specified by GS P. */
             0x40
         };
         fwrite(ESC_CUT, 1, sizeof ESC_CUT, fout);
