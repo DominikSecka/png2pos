@@ -1,7 +1,7 @@
 CC ?= gcc
 
-CFLAGS += -std=c99 -W -Wall -pedantic -ftree-vectorize \
-	-fPIE -fstack-protector -O3 -D_FORTIFY_SOURCE=2 \
+CFLAGS += -std=c99 -W -Wall -pedantic -ftree-vectorize -fPIE \
+	-fstack-protector -O3 -D_FORTIFY_SOURCE=2 \
 	-Ideps/lodepng \
 	-D_POSIX_C_SOURCE=200809L \
 	-D_FILE_OFFSET_BITS=64 \
@@ -61,8 +61,8 @@ deps/lodepng/%.o : deps/lodepng/%.cpp
 # static version
 # usually used with musl etc.:
 #   CC=/usr/local/musl/bin/musl-gcc make static
-static : CFLAGS += -static
-static : LDFLAGS += -static
+static : CFLAGS += -static -fno-PIE
+static : LDFLAGS += -static -no-pie
 static : all
 
 # debugging
