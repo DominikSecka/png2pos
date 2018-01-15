@@ -25,15 +25,15 @@ man : png2pos.1.gz
 .PHONY : clean install uninstall
 
 clean :
-	@-rm -f *.o png2pos 2> /dev/null
-	@-rm *.pos *.gz debug.* *.backup  2> /dev/null
-	@-rm *.c_ *.h_  2> /dev/null
+	@-rm -f *.o png2pos
+	@-rm -f *.pos *.gz debug.* *.backup
+	@-rm -f *.c_ *.h_
 
 install : all man
 	mkdir -p $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/share/man/man1
-	install -m755 png2pos $(DESTDIR)$(PREFIX)/bin
-	install -m644 png2pos.1.gz $(DESTDIR)$(PREFIX)/share/man/man1
-	install -m644 -T png2pos.complete /etc/bash_completion.d/png2pos
+	install -m755 png2pos $(DESTDIR)$(PREFIX)/bin/
+	install -m644 png2pos.1.gz $(DESTDIR)$(PREFIX)/share/man/man1/
+	[ -d /etc/bash_completion.d/ ] && install -m644 png2pos.complete /etc/bash_completion.d/png2pos
 
 uninstall :
 	rm -f $(DESTDIR)$(PREFIX)/bin/png2pos
