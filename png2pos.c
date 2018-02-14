@@ -167,9 +167,8 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'V':
-                fprintf(stderr,
-                    "%s %s (%s)\n", "png2pos", PNG2POS_VERSION,
-                    PNG2POS_BUILTON);
+                fprintf(stderr, "%s %s (%s)\n", "png2pos",
+                    PNG2POS_VERSION, PNG2POS_BUILTON);
                 fprintf(stderr, "%s %s\n", "LodePNG",
                     LODEPNG_VERSION_STRING);
 #ifdef DEBUG
@@ -201,7 +200,7 @@ int main(int argc, char *argv[]) {
                     "\n"
                     "Please read the manual page (man png2pos)\n"
                     "Report bugs at https://github.com/petrkutalek/png2pos/issues\n"
-                    "(c) Petr Kutalek <petr@kutalek.cz>, 2012 - 2017, "
+                    "(c) Petr Kutalek <petr@kutalek.cz>, 2012 - 2018, "
                         "Licensed under the MIT license\n");
                 ret = EXIT_SUCCESS;
                 goto fail;
