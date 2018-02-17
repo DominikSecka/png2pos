@@ -14,7 +14,6 @@ const char *PNG2POS_VERSION = "1.6.23";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
-
 /* modified lodepng allocators */
 void *lodepng_malloc(size_t size) {
     /* for security reason I use calloc instead of malloc; here we
@@ -32,8 +31,8 @@ void lodepng_free(void *ptr) {
 #endif
 
 /* number of dots/lines in vertical direction in one F112 command
-set GS8L_MAX_Y env. var. to <= 128u for Epson TM-J2000/J2100
-default value is 1662, TM-T70, TM-T88 etc. */
+   set GS8L_MAX_Y env. var. to <= 128u for Epson TM-J2000/J2100
+   default value is 1662, TM-T70, TM-T88 etc. */
 #ifndef GS8L_MAX_Y
 #define GS8L_MAX_Y 1662
 #endif
@@ -44,9 +43,9 @@ default value is 1662, TM-T70, TM-T88 etc. */
 #endif
 
 struct dithering_matrix {
-    int dx;
-    int dy;
-    float v;
+    int dx; /* x-offset */
+    int dy; /* y-offset */
+    int v; /* error = v * 1/10,000th of value */
 };
 
 struct app_config {
@@ -330,8 +329,8 @@ int main(int argc, char *argv[]) {
                RGB →  luminance Y → lightness L*
 
                float y_ = 0.2126f * powf(r / 255.0f, 2.2f)
-               + 0.7152f * powf(g / 255.0f, 2.2f)
-               + 0.0722f * powf(b / 255.0f, 2.2f);
+                   + 0.7152f * powf(g / 255.0f, 2.2f)
+                   + 0.0722f * powf(b / 255.0f, 2.2f);
                unsigned int L = 255 * (116.0f * powf(y_, 1/3.0f) - 16);
              */
             img_grey[i] = L;
@@ -385,18 +384,18 @@ int main(int argc, char *argv[]) {
             const struct dithering_matrix dithering_matrix[12] = {
                 /* for simplicity of computation, all standard dithering
                    formulas push the error forward, never backward */
-                {.dx =  1, .dy = 0, .v = 7 / 48.0f},
-                {.dx =  2, .dy = 0, .v = 5 / 48.0f},
-                {.dx = -2, .dy = 1, .v = 3 / 48.0f},
-                {.dx = -1, .dy = 1, .v = 5 / 48.0f},
-                {.dx =  0, .dy = 1, .v = 7 / 48.0f},
-                {.dx =  1, .dy = 1, .v = 5 / 48.0f},
-                {.dx =  2, .dy = 1, .v = 3 / 48.0f},
-                {.dx = -2, .dy = 2, .v = 1 / 48.0f},
-                {.dx = -1, .dy = 2, .v = 3 / 48.0f},
-                {.dx =  0, .dy = 2, .v = 5 / 48.0f},
-                {.dx =  1, .dy = 2, .v = 3 / 48.0f},
-                {.dx =  2, .dy = 2, .v = 1 / 48.0f}
+                {.dx =  1, .dy = 0, .v = 1458 /* 7 / 48 */},
+                {.dx =  2, .dy = 0, .v = 1042 /* 5 / 48 */},
+                {.dx = -2, .dy = 1, .v =  625 /* 3 / 48 */},
+                {.dx = -1, .dy = 1, .v = 1042 /* 5 / 48 */},
+                {.dx =  0, .dy = 1, .v = 1458 /* 7 / 48 */},
+                {.dx =  1, .dy = 1, .v = 1042 /* 5 / 48 */},
+                {.dx =  2, .dy = 1, .v =  625 /* 3 / 48 */},
+                {.dx = -2, .dy = 2, .v =  208 /* 1 / 48 */},
+                {.dx = -1, .dy = 2, .v =  625 /* 3 / 48 */},
+                {.dx =  0, .dy = 2, .v = 1042 /* 5 / 48 */},
+                {.dx =  1, .dy = 2, .v =  625 /* 3 / 48 */},
+                {.dx =  2, .dy = 2, .v =  208 /* 1 / 48 */}
             };
 
             for (unsigned int i = 0; i != img_grey_size; ++i) {
@@ -417,7 +416,7 @@ int main(int argc, char *argv[]) {
                     }
                     /* the residual quantization error, warning: !have to
                        overcast to signed int before calculation! */
-                    int d = (int) (o - n) * dithering_matrix[j].v;
+                    int d = (int) (o - n) * dithering_matrix[j].v / 10000;
 
                     /* keep a value in the <min; max> interval */
                     int a = img_grey[x0 + img_w * y0] + d;
