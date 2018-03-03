@@ -25,7 +25,7 @@ man : png2pos.1.gz
 .PHONY : clean install uninstall
 
 clean :
-	@-rm -f *.o png2pos
+	@-rm -f *.o png2pos deps/lodepng/*.o
 	@-rm -f *.pos *.gz debug.* *.backup
 	@-rm -f *.c_ *.h_
 

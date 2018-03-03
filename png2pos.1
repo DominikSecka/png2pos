@@ -11,7 +11,7 @@ png2pos \- a utility to convert PNG images to ESC/POS format
 [\fB\-p\fR]
 [\fB\-s\fR \fISPEED\fR]
 [\fB\-o\fR \fIFILE\fR]
-INPUT_FILES...
+[INPUT_FILES...]
 .SH DESCRIPTION
 png2pos is a utility to convert PNG images to ESC/POS format (printer
 control codes and escape sequences) used by POS thermal printers.
@@ -56,6 +56,9 @@ is -, write to standard output
 All numeric values for parameters may include a "0x" prefix, and the number
 will be read in base 16, a "0" prefix for base 8 (octal); otherwise,
 a 10 (decimal) base is taken.
+.PP
+If there are no INPUT_FILES specified, png2pos is still usable. It could be
+used just to generate init and cut commands.
 .SH SHELL VARIABLES
 The following environment variables are recognized by png2pos:
 .TP

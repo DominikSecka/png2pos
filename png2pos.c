@@ -10,14 +10,15 @@ printers.
 #include <unistd.h>
 #include "lodepng.h"
 
-const char *PNG2POS_VERSION = "1.6.23";
+const char *PNG2POS_VERSION = "1.6.24";
 const char *PNG2POS_BUILTON = __DATE__;
 
 #ifdef LODEPNG_NO_COMPILE_ALLOCATORS
 /* modified lodepng allocators */
+
 void *lodepng_malloc(size_t size) {
-    /* for security reason I use calloc instead of malloc; here we
-       redefine lodepng allocator */
+    /* for security reason I use calloc instead of malloc;
+       here we redefine lodepng allocator */
     return calloc(size, 1);
 }
 
@@ -37,7 +38,8 @@ void lodepng_free(void *ptr) {
 #define GS8L_MAX_Y 1662
 #endif
 
-/* max image width printer is able to process */
+/* max image width printer is able to process;
+   printer_max_width must be divisible by 8!! */
 #ifndef PRINTER_MAX_WIDTH
 #define PRINTER_MAX_WIDTH 512u
 #endif
@@ -45,7 +47,7 @@ void lodepng_free(void *ptr) {
 struct dithering_matrix {
     int dx; /* x-offset */
     int dy; /* y-offset */
-    int v; /* error = v * 1/10,000th of value */
+    int v; /* error = v * 1/1,000th of value */
 };
 
 struct app_config {
@@ -114,6 +116,16 @@ void png_write(const char *filename, unsigned int w, unsigned int h,
 }
 #endif
 
+unsigned char s_add_to_byte(unsigned char v, int d) {
+    int a = v + d;
+    if (a > 0xff) {
+        a = 0xff;
+    } else if (a < 0) {
+        a = 0;
+    }
+    return a;
+}
+
 int main(int argc, char *argv[]) {
     int ret = EXIT_FAILURE;
 
@@ -180,7 +192,7 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr,
                     "png2pos is a utility to convert PNG to ESC/POS\n"
                     "Usage: png2pos [-V] [-h] [-c] [-a L|C|R] [-r] [-p] "
-                        "[-s SPEED] [-o FILE] INPUT_FILES...\n"
+                        "[-s SPEED] [-o FILE] [INPUT_FILES...]\n"
                     "\n"
                     "  -V           display the version number and exit\n"
                     "  -h           display this short help and exit\n"
@@ -282,6 +294,7 @@ int main(int argc, char *argv[]) {
         fwrite(ESC_SPEED, 1, sizeof ESC_SPEED, fout);
         fflush(fout);
     }
+
     /* for each input file */
     while (optind != argc) {
         char *input = argv[optind++];
@@ -325,14 +338,6 @@ int main(int argc, char *argv[]) {
             unsigned int b = (255 - a) + a / 255 * img_rgba[(i << 2) | 2];
             unsigned int L = (55 * r + 182 * g + 18 * b) / 255;
 
-            /**
-               RGB →  luminance Y → lightness L*
-
-               float y_ = 0.2126f * powf(r / 255.0f, 2.2f)
-                   + 0.7152f * powf(g / 255.0f, 2.2f)
-                   + 0.0722f * powf(b / 255.0f, 2.2f);
-               unsigned int L = 255 * (116.0f * powf(y_, 1/3.0f) - 16);
-             */
             img_grey[i] = L;
 
             /* prepare a histogram for HEA */
@@ -384,18 +389,18 @@ int main(int argc, char *argv[]) {
             const struct dithering_matrix dithering_matrix[12] = {
                 /* for simplicity of computation, all standard dithering
                    formulas push the error forward, never backward */
-                {.dx =  1, .dy = 0, .v = 1458 /* 7 / 48 */},
-                {.dx =  2, .dy = 0, .v = 1042 /* 5 / 48 */},
-                {.dx = -2, .dy = 1, .v =  625 /* 3 / 48 */},
-                {.dx = -1, .dy = 1, .v = 1042 /* 5 / 48 */},
-                {.dx =  0, .dy = 1, .v = 1458 /* 7 / 48 */},
-                {.dx =  1, .dy = 1, .v = 1042 /* 5 / 48 */},
-                {.dx =  2, .dy = 1, .v =  625 /* 3 / 48 */},
-                {.dx = -2, .dy = 2, .v =  208 /* 1 / 48 */},
-                {.dx = -1, .dy = 2, .v =  625 /* 3 / 48 */},
-                {.dx =  0, .dy = 2, .v = 1042 /* 5 / 48 */},
-                {.dx =  1, .dy = 2, .v =  625 /* 3 / 48 */},
-                {.dx =  2, .dy = 2, .v =  208 /* 1 / 48 */}
+                {.dx =  1, .dy = 0, .v = 146 /* 7 / 48 */},
+                {.dx =  2, .dy = 0, .v = 104 /* 5 / 48 */},
+                {.dx = -2, .dy = 1, .v =  63 /* 3 / 48 */},
+                {.dx = -1, .dy = 1, .v = 104 /* 5 / 48 */},
+                {.dx =  0, .dy = 1, .v = 146 /* 7 / 48 */},
+                {.dx =  1, .dy = 1, .v = 104 /* 5 / 48 */},
+                {.dx =  2, .dy = 1, .v =  63 /* 3 / 48 */},
+                {.dx = -2, .dy = 2, .v =  21 /* 1 / 48 */},
+                {.dx = -1, .dy = 2, .v =  63 /* 3 / 48 */},
+                {.dx =  0, .dy = 2, .v = 104 /* 5 / 48 */},
+                {.dx =  1, .dy = 2, .v =  63 /* 3 / 48 */},
+                {.dx =  2, .dy = 2, .v =  21 /* 1 / 48 */}
             };
 
             for (unsigned int i = 0; i != img_grey_size; ++i) {
@@ -416,17 +421,11 @@ int main(int argc, char *argv[]) {
                     }
                     /* the residual quantization error, warning: !have to
                        overcast to signed int before calculation! */
-                    int d = (int) (o - n) * dithering_matrix[j].v / 10000;
+                    int d = (int) (o - n) * dithering_matrix[j].v / 1000;
 
                     /* keep a value in the <min; max> interval */
-                    int a = img_grey[x0 + img_w * y0] + d;
-
-                    if (a > 0xff) {
-                        a = 0xff;
-                    } else if (a < 0) {
-                        a = 0;
-                    }
-                    img_grey[x0 + img_w * y0] = a;
+                    img_grey[x0 + img_w * y0] = s_add_to_byte(
+                        img_grey[x0 + img_w * y0], d);
                 }
             }
         }
@@ -440,10 +439,12 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Could not allocate enough memory\n");
             goto fail;
         }
+
         /* align rotated image to the right border */
         if (config.rotate && config.align == '?') {
             config.align = 'R';
         }
+
         /* left offset */
         unsigned int offset = 0;
 
